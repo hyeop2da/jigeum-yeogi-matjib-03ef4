@@ -76,7 +76,7 @@ function collectObjects(value, out = [], depth = 0) {
 }
 
 function normalizeText(value) {
-  return String(value ?? "").toLowerCase().replace(/\\s+/g, "").replace(/[()\\[\\]{}·.,'"`]/g, "");
+  return String(value ?? "").toLowerCase().replace(/\s+/g, "").replace(/[()\\[\\]{}·.,'"`]/g, "");
 }
 
 async function fetchKakaoSearch(place, diagnostics) {
