@@ -79,7 +79,9 @@ function normalizeText(value) {
   return String(value ?? "").toLowerCase().replace(/\\s+/g, "").replace(/[()\\[\\]{}·.,'"`]/g, "");
 }
 
-async function fetchKakaoSearch(place) {
+async function fetchKakaoSearch(place, diagnostics) {
+  diagnostics.requests++;
+
   const queries = [
     place.address ? `${place.name} ${place.address}` : place.name,
     place.name
@@ -99,15 +101,41 @@ async function fetchKakaoSearch(place) {
       signal: AbortSignal.timeout(8000)
     });
 
-    if (!response.ok) continue;
+    if (!response.ok) {
+      diagnostics.httpErrors++;
+      diagnostics.lastError = `HTTP ${response.status}`;
+      continue;
+    }
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      diagnostics.parseErrors++;
+      diagnostics.lastError = `JSON parse failed: ${String(error?.message || error)}; body=${text.slice(0, 160)}`;
+      continue;
+    }
     const rows = collectObjects(data).filter(row =>
       row && (
         row.confirmid != null || row.id != null || row.place_id != null || row.placeId != null ||
         row.name != null || row.place_name != null
       )
     );
+
+    diagnostics.responses++;
+    diagnostics.rowCounts.push(rows.length);
+    if (rows.length && diagnostics.sample.length < 3) {
+      diagnostics.sample.push({
+        query: q,
+        first: rows.slice(0, 3).map(row => ({
+          id: row.confirmid ?? row.id ?? row.place_id ?? row.placeId ?? null,
+          name: row.name ?? row.place_name ?? null,
+          rating: row.rating_average ?? row.ratingAverage ?? row.avgRating ?? row.averageRating ?? row.score ?? null,
+          reviews: row.reviewCount ?? row.review_count ?? row.ratingCount ?? row.rating_count ?? null
+        }))
+      });
+    }
 
     const placeId = place.id;
     const sameId = rows.find(row =>
@@ -157,6 +185,7 @@ async function fetchKakaoSearch(place) {
         match.reviewCount ?? match.review_count ?? match.ratingCount ?? match.rating_count
       );
       if (rating !== null) {
+        diagnostics.rated++;
         return {
           id: place.id,
           rating,
@@ -176,14 +205,16 @@ async function fetchKakaoSearch(place) {
     source: "kakaomap"
   };
 }
-async function enrichOne(place) {
+async function enrichOne(place, diagnostics) {
   const cached = CACHE.get(place.id);
   if (cached && cached.expires > Date.now()) return cached.value;
   try {
-    const value = await fetchKakaoSearch(place);
+    const value = await fetchKakaoSearch(place, diagnostics);
     CACHE.set(place.id, { value, expires: Date.now() + CACHE_TTL });
     return value;
-  } catch {
+  } catch (error) {
+    diagnostics.exceptions++;
+    diagnostics.lastError = String(error?.message || error);
     const value = { id: place.id, rating: null, reviewCount: null, matched: false, source: "kakaomap" };
     CACHE.set(place.id, { value, expires: Date.now() + 60 * 1000 });
     return value;
@@ -214,11 +245,13 @@ export default async function handler(request) {
     const input = Array.isArray(body?.places) ? body.places.slice(0, 15) : [];
     const places = input.map(cleanPlace).filter(Boolean);
     if (!places.length) return json({ places: [], filtered: 0, source: "kakaomap" }, 200, origin);
-    const enriched = await mapLimit(places, 4, enrichOne);
+    const diagnostics = { requests: 0, responses: 0, httpErrors: 0, parseErrors: 0, exceptions: 0, rated: 0, rowCounts: [], sample: [], lastError: null };
+    const enriched = await mapLimit(places, 4, place => enrichOne(place, diagnostics));
     return json({
       places: enriched,
       filtered: enriched.filter(item => item.rating !== null && item.rating >= 4).length,
-      source: "kakaomap"
+      source: "kakaomap",
+      diagnostics
     }, 200, origin);
   } catch (error) {
     return json({
