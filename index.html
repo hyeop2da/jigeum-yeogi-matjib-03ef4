@@ -187,7 +187,9 @@
     });
     if(!response.ok) throw new Error('카카오 평점 중계 서버 응답 오류 ('+response.status+')');
     const data=await response.json();
+    state.lastRatingDiagnostics=data&&data.diagnostics?data.diagnostics:null;
     const ratings=new Map((Array.isArray(data.places)?data.places:[]).map(x=>[String(x.id),x]));
+    const beforeCount=state.results.length;
     state.results=state.results.filter(p=>{
       const r=ratings.get(String(p.id));
       if(!r || !Number.isFinite(Number(r.rating)) || Number(r.rating)<4) return false;
@@ -196,6 +198,20 @@
       p.__kakaoSource='kakaomap';
       return true;
     });
+    if(!state.results.length && state.lastRatingDiagnostics){
+      const d=state.lastRatingDiagnostics;
+      const detail=[
+        `검색 후보 ${beforeCount}곳`,
+        `중계 요청 ${d.requests}회`,
+        `정상 응답 ${d.responses}회`,
+        `평점 확인 ${d.rated}곳`
+      ];
+      if(d.httpErrors) detail.push(`HTTP 오류 ${d.httpErrors}회`);
+      if(d.parseErrors) detail.push(`JSON 오류 ${d.parseErrors}회`);
+      if(d.exceptions) detail.push(`예외 ${d.exceptions}회`);
+      if(d.lastError) detail.push(String(d.lastError).slice(0,220));
+      notice('평점 중계 진단: '+detail.join(' · '));
+    }
   }
 
   function setSearchCenter(lat,lng,label){
