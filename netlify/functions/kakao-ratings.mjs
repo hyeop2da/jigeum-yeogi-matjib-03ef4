@@ -58,6 +58,27 @@ function distanceMeters(a, b) {
   return 2 * R * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
 }
 
+function collectObjects(value, out = [], depth = 0) {
+  if (depth > 5 || value == null) return out;
+  if (Array.isArray(value)) {
+    for (const item of value) collectObjects(item, out, depth + 1);
+    return out;
+  }
+  if (typeof value === "object") {
+    out.push(value);
+    for (const key of Object.keys(value)) {
+      if (key === "place" || key === "places" || key === "items" || key === "documents" || key === "result" || key === "data") {
+        collectObjects(value[key], out, depth + 1);
+      }
+    }
+  }
+  return out;
+}
+
+function normalizeText(value) {
+  return String(value ?? "").toLowerCase().replace(/\\s+/g, "").replace(/[()\\[\\]{}·.,'"`]/g, "");
+}
+
 async function fetchKakaoSearch(place) {
   const queries = [
     place.address ? `${place.name} ${place.address}` : place.name,
@@ -81,34 +102,80 @@ async function fetchKakaoSearch(place) {
     if (!response.ok) continue;
 
     const data = await response.json();
-    const rows = Array.isArray(data) ? data : (Array.isArray(data?.place) ? data.place : []);
-    const sameId = rows.find(row => String(row?.confirmid || row?.id || "") === place.id);
+    const rows = collectObjects(data).filter(row =>
+      row && (
+        row.confirmid != null || row.id != null || row.place_id != null || row.placeId != null ||
+        row.name != null || row.place_name != null
+      )
+    );
+
+    const placeId = place.id;
+    const sameId = rows.find(row =>
+      String(row.confirmid ?? row.id ?? row.place_id ?? row.placeId ?? "") === placeId
+    );
+
+    const wantedName = normalizeText(place.name);
+    const wantedAddress = normalizeText(place.address);
     const sameName = rows
-      .filter(row => String(row?.name || "").trim() === place.name)
+      .filter(row => {
+        const rowName = normalizeText(row.name ?? row.place_name);
+        const rowAddress = normalizeText(row.new_address ?? row.road_address_name ?? row.address_name ?? row.address);
+        return rowName === wantedName ||
+          (rowName && wantedName && (rowName.includes(wantedName) || wantedName.includes(rowName)) &&
+           (!wantedAddress || !rowAddress || rowAddress.includes(wantedAddress) || wantedAddress.includes(rowAddress)));
+      })
       .sort((a, b) => {
-        const da = distanceMeters(place, { x: numberOrNull(a?.lon), y: numberOrNull(a?.lat) });
-        const db = distanceMeters(place, { x: numberOrNull(b?.lon), y: numberOrNull(b?.lat) });
+        const da = distanceMeters(place, {
+          x: numberOrNull(a.x ?? a.lon),
+          y: numberOrNull(a.y ?? a.lat)
+        });
+        const db = distanceMeters(place, {
+          x: numberOrNull(b.x ?? b.lon),
+          y: numberOrNull(b.y ?? b.lat)
+        });
         return da - db;
       })[0];
 
-    const match = sameId || (sameName && distanceMeters(place, {
-      x: numberOrNull(sameName?.lon), y: numberOrNull(sameName?.lat)
-    }) < 1000);
+    const nearest = rows
+      .map(row => ({
+        row,
+        distance: distanceMeters(place, {
+          x: numberOrNull(row.x ?? row.lon),
+          y: numberOrNull(row.y ?? row.lat)
+        })
+      }))
+      .filter(x => Number.isFinite(x.distance))
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    const match = sameId || sameName || (nearest && nearest.distance < 300 ? nearest.row : null);
 
     if (match) {
-      return {
-        id: place.id,
-        rating: numberOrNull(match.rating_average ?? match.ratingAverage),
-        reviewCount: numberOrNull(match.reviewCount ?? match.review_count ?? match.ratingCount),
-        matched: true,
-        source: "kakaomap"
-      };
+      const rating = numberOrNull(
+        match.rating_average ?? match.ratingAverage ?? match.avgRating ?? match.averageRating ?? match.score
+      );
+      const reviewCount = numberOrNull(
+        match.reviewCount ?? match.review_count ?? match.ratingCount ?? match.rating_count
+      );
+      if (rating !== null) {
+        return {
+          id: place.id,
+          rating,
+          reviewCount,
+          matched: true,
+          source: "kakaomap"
+        };
+      }
     }
   }
 
-  return { id: place.id, rating: null, reviewCount: null, matched: false, source: "kakaomap" };
+  return {
+    id: place.id,
+    rating: null,
+    reviewCount: null,
+    matched: false,
+    source: "kakaomap"
+  };
 }
-
 async function enrichOne(place) {
   const cached = CACHE.get(place.id);
   if (cached && cached.expires > Date.now()) return cached.value;
