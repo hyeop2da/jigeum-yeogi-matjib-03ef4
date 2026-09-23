@@ -182,7 +182,7 @@
     }));
     const response=await fetch(url,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
       body:JSON.stringify({places})
     });
     if(!response.ok) throw new Error('카카오 평점 중계 서버 응답 오류 ('+response.status+')');
