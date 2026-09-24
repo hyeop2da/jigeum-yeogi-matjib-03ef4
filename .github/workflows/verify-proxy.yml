@@ -6,6 +6,7 @@ on:
       - gh-pages
     paths:
       - "config.js"
+      - "index.html"
       - "api/**"
       - "worker/src/**"
       - ".github/workflows/verify-proxy.yml"
@@ -64,3 +65,31 @@ jobs:
           done
           echo "::error::GitHub Pages 의 config.js 가 아직 새 주소가 아닙니다."
           exit 1
+
+      - name: Check live index.html version
+        run: |
+          set -euo pipefail
+          WANT=$(grep -oE 'data-app-version="[^"]+"' index.html)
+          for i in $(seq 1 30); do
+            LIVE=$(curl -fsS "https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/?t=$(date +%s)" | grep -oE 'data-app-version="[^"]+"' || true)
+            if [ "$LIVE" = "$WANT" ]; then echo "Live index.html OK: $LIVE"; exit 0; fi
+            echo "Pages 반영 대기 $i/30 (현재: $LIVE)"; sleep 10
+          done
+          echo "::error::GitHub Pages 의 index.html 이 최신 버전이 아닙니다."
+          exit 1
+
+      - name: Batch rating test (45 places limit)
+        run: |
+          set -euo pipefail
+          URL=$(grep -oE "KAKAO_PROXY_URL:\s*'[^']+'" config.js | sed -E "s/.*'([^']+)'/\1/")
+          python3 - "$URL" <<'PY2'
+          import json, sys, urllib.request, time
+          url = sys.argv[1]
+          base = {"id":"11547525","place_name":"우진해장국","road_address_name":"제주특별자치도 제주시 서사로 11","x":"126.52000128","y":"33.5115169"}
+          places = [dict(base, id=str(11547525 + (0 if i == 0 else 900000000 + i)), place_name=base["place_name"] if i == 0 else f"없는가게{i}") for i in range(20)]
+          req = urllib.request.Request(url, data=json.dumps({"places": places}).encode(), headers={"Content-Type": "text/plain;charset=UTF-8", "Origin": "https://hyeop2da.github.io"})
+          t = time.time()
+          d = json.load(urllib.request.urlopen(req, timeout=30))
+          print(f"20곳 요청 → 응답 {len(d['places'])}곳, {time.time()-t:.1f}초, rated={d['diagnostics']['rated']}")
+          assert len(d["places"]) == 20, "20곳 모두 응답해야 함"
+          PY2
