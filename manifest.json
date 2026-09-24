@@ -5,9 +5,9 @@
   "display": "standalone",
   "background_color": "#f6f7fb",
   "theme_color": "#111827",
-  "description": "현재 위치 주변의 실제 음식점을 찾고 네이버·카카오에서 직접 확인하는 설치형 맛집 앱",
+  "description": "상황·날씨·최근 먹은 메뉴까지 고려해 지금 갈 점심 한 곳을 골라주는 결정 앱",
   "icons": [
-    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }

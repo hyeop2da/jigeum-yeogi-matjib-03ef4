@@ -227,11 +227,11 @@ async function handler(request) {
 
   try {
     const body = await request.json();
-    const input = Array.isArray(body?.places) ? body.places.slice(0, 15) : [];
+    const input = Array.isArray(body?.places) ? body.places.slice(0, 45) : [];
     const places = input.map(cleanPlace).filter(Boolean);
     if (!places.length) return json({ places: [], filtered: 0, source: "kakaomap" }, 200, origin);
     const diagnostics = { requests: 0, responses: 0, httpErrors: 0, parseErrors: 0, exceptions: 0, rated: 0, rowCounts: [], sample: [], lastError: null };
-    const enriched = await mapLimit(places, 4, place => enrichOne(place, diagnostics));
+    const enriched = await mapLimit(places, 6, place => enrichOne(place, diagnostics));
     return json({
       places: enriched,
       filtered: enriched.filter(item => item.rating !== null && item.rating >= 4).length,

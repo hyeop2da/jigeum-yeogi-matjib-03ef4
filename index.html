@@ -4,61 +4,91 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <meta name="description" content="현재 위치 주변의 실제 음식점을 빠르게 찾고 네이버·카카오에서 직접 확인하는 설치형 맛집 앱" />
+  <meta name="description" content="상황·날씨·최근 먹은 메뉴까지 고려해 지금 갈 점심 한 곳을 골라주는 결정 앱" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" href="icon-192.png" />
   <title>지금 여기 맛집</title>
   <style>
-    :root{--bg:#f6f7fb;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#ef4444;--accent2:#111827;--good:#15803d;--shadow:0 10px 30px rgba(17,24,39,.08);}
+    :root{--bg:#f6f7fb;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#ef4444;--good:#15803d;--warn:#b45309;--shadow:0 10px 30px rgba(17,24,39,.08);}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Arial,sans-serif}
     button,input{font:inherit}.app{max-width:1100px;margin:auto;min-height:100vh}
-    .top{padding:28px 18px 18px;background:linear-gradient(135deg,#111827 0%,#1f2937 65%,#374151 100%);color:#fff;border-radius:0 0 26px 26px}
+    .top{padding:24px 18px 18px;background:linear-gradient(135deg,#111827 0%,#1f2937 65%,#374151 100%);color:#fff;border-radius:0 0 26px 26px}
     .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:#fff;display:grid;place-items:center;font-size:24px;box-shadow:0 6px 18px rgba(0,0,0,.15)}
     h1{margin:0;font-size:23px;letter-spacing:-.5px}.sub{margin:6px 0 0;color:#d1d5db;font-size:13px}
-    .hero{margin-top:18px;display:grid;gap:10px}.search{display:flex;background:#fff;border-radius:16px;padding:6px;box-shadow:var(--shadow)}.search input{flex:1;border:0;outline:0;padding:12px 12px;color:var(--text);min-width:0}.search button{border:0;border-radius:12px;background:var(--accent);color:#fff;padding:0 16px;font-weight:700}
-    .locationbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.locbtn{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;padding:9px 12px;border-radius:12px;cursor:pointer}.locsearch{flex:1;min-width:220px;max-width:420px;border:1px solid rgba(255,255,255,.2);background:#fff;color:var(--text);padding:9px 12px;border-radius:12px;outline:0}.locstate{font-size:13px;color:#e5e7eb}
+    .hero{margin-top:16px;display:grid;gap:10px}.search{display:flex;background:#fff;border-radius:16px;padding:6px;box-shadow:var(--shadow)}.search input{flex:1;border:0;outline:0;padding:12px;color:var(--text);min-width:0}.search button{border:0;border-radius:12px;background:var(--accent);color:#fff;padding:0 16px;font-weight:700}
+    .locationbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.locbtn{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;padding:9px 12px;border-radius:12px;cursor:pointer}.locsearch{flex:1;min-width:200px;max-width:420px;border:1px solid rgba(255,255,255,.2);background:#fff;color:var(--text);padding:9px 12px;border-radius:12px;outline:0}.locstate{font-size:13px;color:#e5e7eb}
     .content{padding:16px 18px 34px}.notice{display:none;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;margin-bottom:12px;font-size:13px}.notice.show{display:block}
-    .toolbar{display:grid;gap:10px;margin-bottom:14px}.chips{display:flex;gap:7px;overflow:auto;padding-bottom:2px}.chip{white-space:nowrap;border:1px solid var(--line);background:#fff;color:#374151;border-radius:999px;padding:9px 12px;cursor:pointer}.chip.active{background:#111827;color:#fff;border-color:#111827}
-    .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--muted)}.meta select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;color:#374151}
-    .recommend-note{padding:11px 13px;background:#fff;border:1px solid var(--line);border-radius:12px;color:#4b5563;font-size:12px;line-height:1.5}.recommend-note b{color:#111827}.decision-actions{display:flex;gap:8px}.decision-btn{flex:1;border:0;background:#111827;color:#fff;border-radius:12px;padding:11px 12px;font-weight:800;cursor:pointer}.decision-btn.secondary{background:#fff;color:#374151;border:1px solid var(--line)}.meta-hint{font-size:11px;color:#9ca3af}
+    .toolbar{display:grid;gap:10px;margin-bottom:14px}.step{font-size:12px;font-weight:800;color:#374151;margin:2px 0 -4px}.step span{color:var(--muted);font-weight:600}
+    .chips{display:flex;gap:7px;overflow:auto;padding-bottom:2px}.chip{white-space:nowrap;border:1px solid var(--line);background:#fff;color:#374151;border-radius:999px;padding:9px 12px;cursor:pointer}.chip.active{background:#111827;color:#fff;border-color:#111827}
+    .context{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:#4b5563}.context .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 10px}.context button{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:12px}
+    .pick{display:none;background:linear-gradient(135deg,#fff7ed,#fff);border:2px solid #fdba74;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}.pick.show{display:block}
+    .pick-label{font-size:12px;font-weight:800;color:#c2410c}.pick-name{font-size:26px;font-weight:900;letter-spacing:-.6px;margin:6px 0 2px}.pick-menu{font-size:13px;color:var(--muted)}
+    .pick-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.b{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:5px 8px;font-size:12px;font-weight:700;background:#f3f4f6;color:#374151}.b.gold{background:#fef3c7;color:#92400e}.b.green{background:#dcfce7;color:#166534}.b.blue{background:#dbeafe;color:#1e40af}
+    .why{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:5px;font-size:14px}.why li{background:#fff;border:1px solid #fde2c8;border-radius:10px;padding:8px 10px}
+    .pick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.btn{border:0;border-radius:12px;padding:12px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;font-size:14px}.btn.main{background:#111827;color:#fff;grid-column:1/-1}.btn.sub{background:#fff;color:#374151;border:1px solid var(--line)}
+    .ethics{margin-top:10px;font-size:12px;color:var(--warn);background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;display:none}.ethics.show{display:block}
     .layout{display:grid;grid-template-columns:1fr 1.15fr;gap:14px}.mapwrap,.listwrap{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
-    #map{height:560px;background:#e5e7eb}.list{max-height:560px;overflow:auto}.empty{padding:35px 20px;text-align:center;color:var(--muted)}
-    .card{padding:15px;border-bottom:1px solid var(--line);cursor:pointer;scroll-margin-top:18px}.card:last-child{border-bottom:0}.card:hover{background:#fafafa}.card.focused{background:#fff7ed;box-shadow:inset 4px 0 0 var(--accent)}.row{display:flex;justify-content:space-between;gap:10px}.name{font-weight:800;font-size:17px;letter-spacing:-.2px}.distance{font-weight:700;color:var(--accent);white-space:nowrap;font-size:13px}.cat{font-size:12px;color:var(--muted);margin-top:4px}.addr{font-size:13px;color:#374151;margin-top:9px;line-height:1.45}.phone{font-size:12px;color:var(--muted);margin-top:5px}.badge{display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;color:var(--good);border:1px solid #bbf7d0;padding:5px 8px;border-radius:8px;font-size:11px;font-weight:700;margin-top:10px}.badge.rank{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.kakao-rating{font-size:13px;font-weight:800;color:#111827;margin-top:9px}.actions{display:flex;gap:7px;margin-top:10px}.action{border:1px solid var(--line);background:#fff;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:12px;text-decoration:none;color:#374151}.action.primary{background:#111827;color:#fff;border-color:#111827}
+    #map{height:560px;background:#e5e7eb}.list{max-height:560px;overflow:auto}.list-head{padding:12px 15px;font-size:13px;font-weight:800;border-bottom:1px solid var(--line);background:#fafafa}.empty{padding:35px 20px;text-align:center;color:var(--muted)}
+    .card{padding:14px 15px;border-bottom:1px solid var(--line);cursor:pointer;scroll-margin-top:18px}.card:last-child{border-bottom:0}.card:hover{background:#fafafa}.card.focused{background:#fff7ed;box-shadow:inset 4px 0 0 var(--accent)}.card.is-pick{box-shadow:inset 4px 0 0 #f97316}
+    .row{display:flex;justify-content:space-between;gap:10px}.name{font-weight:800;font-size:16px}.rank{color:#9ca3af;font-weight:800;margin-right:4px}.distance{font-weight:700;color:var(--accent);white-space:nowrap;font-size:13px}.cat{font-size:12px;color:var(--muted);margin-top:3px}.rating{font-size:13px;font-weight:800;margin-top:7px}.mini{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.mini .b{font-size:11px;padding:4px 7px}.minus{color:#9ca3af;font-size:11px;margin-top:5px}
+    .actions{display:flex;gap:7px;margin-top:9px}.action{border:1px solid var(--line);background:#fff;padding:7px 10px;border-radius:9px;cursor:pointer;font-size:12px;text-decoration:none;color:#374151}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 16px;border-radius:14px;font-size:14px;box-shadow:0 12px 35px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s;z-index:60;max-width:90vw;text-align:center}.toast.show{opacity:1}
     .footer{padding:18px;color:#8a8f98;font-size:11px;line-height:1.6}.source{font-weight:700;color:#5b6472}
     .install{position:fixed;left:14px;right:14px;bottom:14px;display:none;background:#111827;color:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 12px 35px rgba(0,0,0,.2);align-items:center;gap:10px;z-index:50}.install.show{display:flex}.install button{margin-left:auto;border:0;border-radius:10px;background:#fff;color:#111827;padding:8px 10px;font-weight:700}
-    @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:360px}.listwrap{order:2}.mapwrap{order:1}}
+    .spin .pick-name{animation:blink .12s linear infinite}@keyframes blink{50%{opacity:.35}}
+    @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:320px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}}
   </style>
 </head>
-<body data-app-version="2026-09-23-auto-deploy-v22">
+<body data-app-version="2026-09-24-decision-v1">
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">🍜</div><div><h1>지금 여기 맛집</h1><p class="sub">현재 위치에서 가까우면서 검색 조건에 잘 맞는 추천 후보를 찾아요.</p></div></div>
+    <div class="brand"><div class="logo">🍜</div><div><h1>지금 여기 맛집</h1><p class="sub">메뉴 고민 30초 컷 · 상황·날씨·최근 먹은 메뉴까지 따져 <b>딱 한 곳</b>을 골라드려요.</p></div></div>
     <div class="hero">
-      <div class="search"><input id="query" placeholder="메뉴나 음식점 검색 · 예: 삼겹살, 국밥" autocomplete="off" /><button id="searchBtn">찾기</button></div>
-      <div class="locationbar"><button class="locbtn" id="locBtn">📍 현재 위치 사용</button><input id="locationQuery" class="locsearch" placeholder="지역·주소·역 검색 (예: 강남역, 성수동)" autocomplete="off" /><button class="locbtn" id="locationSearchBtn">이 위치 찾기</button><span class="locstate" id="locState">현재 위치 또는 원하는 지역을 지정할 수 있습니다.</span></div>
+      <div class="search"><input id="query" placeholder="먹고 싶은 게 정해졌다면 · 예: 고기국수, 돈까스" autocomplete="off" /><button id="searchBtn">찾기</button></div>
+      <div class="locationbar"><button class="locbtn" id="locBtn">📍 현재 위치 사용</button><input id="locationQuery" class="locsearch" placeholder="지역·주소 검색 (예: 제주도청, 노형동)" autocomplete="off" /><button class="locbtn" id="locationSearchBtn">이 위치 찾기</button><span class="locstate" id="locState">현재 위치 또는 원하는 지역을 지정해 주세요.</span></div>
     </div>
   </header>
 
   <main class="content">
     <div class="notice" id="notice"></div>
     <section class="toolbar">
+      <div class="step">① 누구랑 먹나요?</div>
+      <div class="chips" id="situationChips"></div>
+      <div class="step">② 오늘 당기는 건? <span>(모르겠으면 날씨 맞춤)</span></div>
+      <div class="chips" id="moodChips"></div>
+      <div class="step">③ 얼마나 걸을까요?</div>
       <div class="chips" id="radiusChips"></div>
-      <div class="chips" id="categoryChips"></div>
-      <div class="recommend-note"><b>추천 방식:</b> 카카오맵의 평점·후기 데이터를 이용해 <b>4.0 이상 후보를 좁힌 뒤</b>, 가까운 후보를 최대 5곳으로 압축해 보여줍니다. 인공 추천 점수는 만들지 않습니다.</div>
-      <div class="decision-actions"><button class="decision-btn" id="randomBtn">🎲 오늘 뭐 먹지?</button><button class="decision-btn secondary" id="showAllBtn">📋 후보 5곳 다시 보기</button></div>
-      <div class="meta"><span id="summary">위치를 찾으면 추천 후보를 보여드립니다.</span><span class="meta-hint">평점·후기 수는 카카오맵 원본 데이터</span></div>
+      <div class="context" id="context"></div>
     </section>
+
+    <section class="pick" id="pick" aria-live="polite">
+      <div class="pick-label" id="pickLabel">👑 오늘은 여기 어때요?</div>
+      <div class="pick-name" id="pickName"></div>
+      <div class="pick-menu" id="pickMenu"></div>
+      <div class="pick-badges" id="pickBadges"></div>
+      <ul class="why" id="pickWhy"></ul>
+      <div class="ethics" id="ethics">💡 공직자 식사 제공·접대 시 <b>청탁금지법 음식물 가액 기준(1인 5만원)</b>을 확인하세요.</div>
+      <div class="pick-actions">
+        <button class="btn main" id="decideBtn">✅ 여기로 결정! (기록하고 길찾기)</button>
+        <button class="btn sub" id="nextBtn">👉 다른 곳</button>
+        <button class="btn sub" id="luckyBtn">🎲 운에 맡기기</button>
+        <a class="btn sub" id="pickMapBtn" href="#">🗺️ 카카오맵 상세</a>
+        <button class="btn sub" id="shareBtn">📤 동료에게 후보 3곳 보내기</button>
+      </div>
+    </section>
+
     <section class="layout">
       <div class="mapwrap"><div id="map"></div></div>
-      <div class="listwrap"><div class="list" id="list"><div class="empty">📍 현재 위치를 허용해 주세요.</div></div></div>
+      <div class="listwrap"><div class="list-head" id="summary">위치를 정하면 후보를 골라드립니다.</div><div class="list" id="list"><div class="empty">📍 현재 위치를 허용하거나 지역을 검색해 주세요.</div></div></div>
     </section>
     <div class="footer">
-      <div class="source">데이터 출처: Kakao Local/Map 장소 검색</div>
-      이 앱은 카카오맵에서 검색된 실제 장소를 대상으로 카카오맵의 평점과 후기글 수를 중계 서버에서 확인합니다. 화면의 평점·후기글 수는 <b>카카오맵 데이터</b>이며, 별도의 추천 점수는 만들지 않습니다.
+      <div class="source">데이터 출처: Kakao Local 장소 검색 · 카카오맵 평점 · Open-Meteo 날씨</div>
+      추천 순위는 카카오맵 평점을 <b>평가 인원수로 보정한 신뢰 점수</b>에 거리·상황·날씨·최근 식사 기록을 더해 계산합니다. 식사 기록은 이 기기 안에만 저장되며 서버로 전송되지 않습니다.
     </div>
   </main>
 </div>
+<div class="toast" id="toast"></div>
 <div class="install" id="installBar"><span>📱 홈 화면에 설치하면 앱처럼 바로 열 수 있어요.</span><button id="installBtn">설치</button></div>
 
 <script src="./config.js"></script>
@@ -66,65 +96,209 @@
 <script>
 (function(){
   const CONFIG=window.APP_CONFIG||{KAKAO_JS_KEY:''};
-  const state={lat:null,lng:null,radius:2000,category:'FD6',query:'',results:[],map:null,ps:null,myMarker:null,markers:[]};
-  const radiusOpts=[['1km',1000],['2km',2000],['3km',3000],['5km',5000]];
-  const cats=[['전체','FD6'],['한식','한식'],['고기','고기'],['일식','일식'],['중식','중식'],['치킨','치킨'],['분식','분식'],['카페','CE7']];
+  const MIN_RATING=3.7;
+  const state={lat:null,lng:null,radius:1200,situation:'team',mood:'auto',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,busy:false};
+  const radiusOpts=[['도보 5분',400],['도보 10분',800],['도보 15분',1200],['2km',2000],['3km',3000],['5km',5000]];
+
+  // 메뉴 성향 태그: 카카오 카테고리명·상호에 들어간 단어로 판단
+  const MOODS={
+    soup:{label:'🍲 뜨끈한 국물',kw:['국밥','해장','국수','칼국수','설렁탕','곰탕','갈비탕','찌개','전골','라멘','라면','우동','쌀국수','짬뽕','수제비','몸국','뚝배기','순대','샤브','탕']},
+    spicy:{label:'🌶️ 매콤하게',kw:['짬뽕','마라','떡볶이','찜닭','낙지','쭈꾸미','주꾸미','닭갈비','김치','부대찌개','매운','아구','아귀','육개장','카레','닭볶음']},
+    light:{label:'🥗 가볍게',kw:['샐러드','샌드위치','김밥','분식','베이커리','브런치','포케','죽','비빔밥','쌀국수','베트남','냉면','메밀','초밥','덮밥','햄버거']},
+    hearty:{label:'🍖 든든하게',kw:['육류','고기','삼겹살','돼지','갈비','소고기','돈까스','돈가스','한정식','백반','뷔페','제육','보쌈','족발','정육','스테이크','중국요리','중식','불고기']},
+    jeju:{label:'🍊 제주 향토',kw:['고기국수','몸국','갈치','고등어','흑돼지','해물뚝배기','보말','성게','전복','옥돔','접짝','빙떡','해녀','자리물회','물회','한치','향토','고사리']}
+  };
+  const MOOD_ORDER=[['auto','🌦️ 날씨 맞춤'],['soup'],['spicy'],['light'],['hearty'],['jeju'],['any','🎲 아무거나']];
+  const SITUATIONS={
+    solo:{label:'🍚 혼밥',kw:['국밥','해장','국수','분식','김밥','덮밥','라멘','우동','돈까스','돈가스','백반','쌀국수','죽','햄버거','샌드위치','칼국수'],why:'혼밥하기 편한 메뉴'},
+    team:{label:'👥 팀 점심',kw:['한식','백반','한정식','중식','중국요리','고기','찌개','국밥','뷔페','칼국수','해물','육류','뚝배기'],why:'여럿이 가기 무난한 메뉴'},
+    guest:{label:'🤝 손님 모시기',kw:['한정식','일식','초밥','회','향토','갈치','흑돼지','전복','해물','코스','샤브','옥돔'],why:'손님 모시기 좋은 메뉴'},
+    dinner:{label:'🍻 회식',kw:['고기','삼겹살','흑돼지','갈비','육류','회','술집','이자카야','중식','중국요리','족발','보쌈','치킨'],why:'회식 분위기에 맞는 메뉴'}
+  };
+
   const $=id=>document.getElementById(id);
   function notice(msg){$('notice').textContent=msg;$('notice').classList.add('show')}
   function clearNotice(){$('notice').classList.remove('show')}
+  let toastTimer=null;
+  function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2600)}
   function fmtDistance(m){return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'}
-  function naverUrl(name,address){return 'https://search.naver.com/search.naver?where=nexearch&query='+encodeURIComponent(name+' '+address)}
-  function mapsUrl(place){
-    const id=String(place&&place.id||'').trim();
-    if(id) return 'kakaomap://place?id='+encodeURIComponent(id);
-    if(place&&place.place_url) return place.place_url;
-    return 'https://map.kakao.com/link/search/'+encodeURIComponent(place&&place.place_name||'');
+  function walkMin(m){return Math.max(1,Math.round(Number(m||0)/70))}
+  function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+  function placeUrl(p){return p.place_url||('https://place.map.kakao.com/'+encodeURIComponent(p.id))}
+  function routeUrl(p){return 'https://map.kakao.com/link/to/'+encodeURIComponent(p.place_name)+','+p.y+','+p.x}
+  function menuLabel(p){const parts=String(p.category_name||'').split('>').map(s=>s.trim()).filter(Boolean);return parts.length?parts[parts.length-1]:'음식점'}
+  function textOf(p){return String(p.category_name||'')+' '+String(p.place_name||'')}
+  function tagsOf(p){const t=textOf(p);return Object.keys(MOODS).filter(k=>MOODS[k].kw.some(w=>t.includes(w)))}
+
+  // ── 최근 식사 기록 (이 기기에만 저장) ──
+  const HISTORY_KEY='jy-lunch-history-v1';
+  function loadHistory(){try{const v=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+  function saveHistory(list){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(list.slice(0,30)))}catch(e){}}
+  function daysAgo(ts){return (Date.now()-Number(ts||0))/86400000}
+  function recentHistory(days){return loadHistory().filter(h=>daysAgo(h.ts)<days)}
+  function dayWord(ts){const d=Math.floor((new Date().setHours(0,0,0,0)-new Date(ts).setHours(0,0,0,0))/86400000);return d<=0?'오늘':d===1?'어제':d+'일 전'}
+
+  // ── 날씨 (Open-Meteo, 키 불필요) ──
+  async function loadWeather(){
+    try{
+      const u='https://api.open-meteo.com/v1/forecast?latitude='+state.lat.toFixed(3)+'&longitude='+state.lng.toFixed(3)+'&current=temperature_2m,precipitation,weather_code&timezone=auto';
+      const r=await fetch(u,{signal:AbortSignal.timeout?AbortSignal.timeout(5000):undefined});
+      if(!r.ok) return;
+      const c=(await r.json()).current||{};
+      const code=Number(c.weather_code), temp=Number(c.temperature_2m);
+      const wet=(code>=51&&code<=67)||(code>=80&&code<=82)||code>=95||Number(c.precipitation)>0;
+      const snow=(code>=71&&code<=77)||code===85||code===86;
+      let mood=null, why='';
+      if(snow){mood='soup';why='❄️ 눈 오는 날엔 뜨끈한 국물'}
+      else if(wet){mood='soup';why='☔ 비 오는 날엔 뜨끈한 국물'}
+      else if(temp<=12){mood='soup';why='🥶 쌀쌀한 날('+Math.round(temp)+'°C)엔 국물'}
+      else if(temp>=27){mood='light';why='🥵 더운 날('+Math.round(temp)+'°C)엔 가볍게'}
+      state.weather={temp,wet,snow,mood,why,icon:snow?'❄️':wet?'🌧️':temp>=27?'☀️':temp<=12?'🌥️':'⛅'};
+      renderContext();
+    }catch(e){}
+  }
+  function effectiveMood(){
+    if(state.mood==='auto') return state.weather&&state.weather.mood||'any';
+    return state.mood;
   }
 
-  function renderChips(){
-    $('radiusChips').innerHTML=radiusOpts.map(([t,v])=>`<button class="chip ${state.radius===v?'active':''}" data-radius="${v}">${t}</button>`).join('');
-    $('categoryChips').innerHTML=cats.map(([t,v],i)=>`<button class="chip ${state.category===v?'active':''}" data-cat="${v}">${t}</button>`).join('');
-    document.querySelectorAll('[data-radius]').forEach(b=>b.onclick=()=>{state.radius=+b.dataset.radius;renderChips();search()});
-    document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{
-      state.category=b.dataset.cat;
-      $('query').value='';
-      $('query').blur();
-      renderChips();
-      search();
-    });
+  // ── 점수 계산: 평가 인원수로 보정한 신뢰 점수 + 상황·기분·거리·최근 기록 ──
+  function scorePlace(p,recent3,recent7Ids,typedQuery){
+    const R=Number(p.__rating), v=Number.isFinite(p.__ratingCount)?p.__ratingCount:Math.min(Number(p.__reviewCount||0),50);
+    const m=20, C=4.0;
+    const trust=(v*R+m*C)/(v+m);
+    let s=(trust-3.6)*50;
+    const plus=[], minus=[], badges=[];
+    const walk=walkMin(p.distance);
+    s-=walk*1.1;
+    if(v>=300&&R>=4.2) badges.push(['gold','🏆 동네 대표 맛집']);
+    else if(v<60&&R>=4.5) badges.push(['green','🌱 숨은 맛집']);
+    else if(v>=100) badges.push(['blue','✅ 평가 '+v.toLocaleString()+'명 검증']);
+    plus.push('⭐ 카카오 평점 '+R.toFixed(1)+' · '+(v?v.toLocaleString()+'명 평가':'평가 적음')+(v>=100?' (믿을 만한 점수)':''));
+
+    const tags=tagsOf(p), text=textOf(p);
+    const mood=typedQuery?'any':effectiveMood();
+    if(mood!=='any'){
+      if(tags.includes(mood)){s+=22;plus.push(state.mood==='auto'&&state.weather&&state.weather.why?state.weather.why+' → '+menuLabel(p):MOODS[mood].label+' 기분에 딱');}
+      else s-=6;
+    }
+    const sit=SITUATIONS[state.situation];
+    if(sit.kw.some(w=>text.includes(w))){s+=state.situation==='guest'?28:14;plus.push(sit.label.split(' ')[0]+' '+sit.why);}
+    else if(state.situation==='guest') s-=8;
+    if(state.situation==='solo') s-=walk*0.8;
+    if(state.situation==='team'||state.situation==='dinner') s+=Math.min(10,Math.log10(v+1)*4);
+    if(state.situation==='guest') s+=(R-4)*25;
+
+    const sameTag=recent3.find(h=>(h.tags||[]).some(t=>tags.includes(t)&&t!=='jeju'));
+    if(recent7Ids.has(String(p.id))){s-=60;minus.push('최근 7일 안에 다녀온 곳');}
+    else if(sameTag){s-=18;minus.push(dayWord(sameTag.ts)+' 먹은 메뉴('+sameTag.menu+')와 비슷해요');}
+    else if(recent3.length){s+=4;plus.push('🔄 최근 먹은 메뉴와 겹치지 않아요');}
+
+    if(walk<=20){const rest=60-walk*2;plus.push('🚶 도보 '+walk+'분 · 점심 60분 중 식사 '+rest+'분 확보');}
+    else plus.push('🚗 '+fmtDistance(p.distance)+' 거리 (차량 이동 권장)');
+    return {score:s,plus,minus,badges,tags,walk,trust};
   }
-  function ensureMap(){
-    if(state.map) return;
-    if(!CONFIG.KAKAO_JS_KEY || CONFIG.KAKAO_JS_KEY==='YOUR_KAKAO_JAVASCRIPT_KEY'){
-      notice('카카오 JavaScript 키가 설정되지 않았습니다.');
+
+  function rankResults(){
+    const recent3=recentHistory(3), recent7Ids=new Set(recentHistory(7).map(h=>String(h.id)));
+    const typed=$('query').value.trim();
+    state.ranked=state.results.map(p=>Object.assign(p,{__s:scorePlace(p,recent3,recent7Ids,typed)}))
+      .sort((a,b)=>b.__s.score-a.__s.score);
+    state.pickIdx=0;
+  }
+
+  // ── 렌더링 ──
+  function renderChips(){
+    $('situationChips').innerHTML=Object.keys(SITUATIONS).map(k=>`<button class="chip ${state.situation===k?'active':''}" data-sit="${k}">${SITUATIONS[k].label}</button>`).join('');
+    $('moodChips').innerHTML=MOOD_ORDER.map(([k,l])=>`<button class="chip ${state.mood===k?'active':''}" data-mood="${k}">${l||MOODS[k].label}</button>`).join('');
+    $('radiusChips').innerHTML=radiusOpts.map(([t,v])=>`<button class="chip ${state.radius===v?'active':''}" data-radius="${v}">${t}${v<=1200?' · '+fmtDistance(v):''}</button>`).join('');
+    document.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{state.situation=b.dataset.sit;renderChips();rerank()});
+    document.querySelectorAll('[data-mood]').forEach(b=>b.onclick=()=>{state.mood=b.dataset.mood;renderChips();rerank()});
+    document.querySelectorAll('[data-radius]').forEach(b=>b.onclick=()=>{state.radius=+b.dataset.radius;state.autoExpanded=false;renderChips();search()});
+  }
+  function renderContext(){
+    const bits=[];
+    const w=state.weather;
+    if(w) bits.push('<span class="pill">'+w.icon+' 지금 '+Math.round(w.temp)+'°C'+(w.why?' · '+escapeHtml(w.why):'')+'</span>');
+    const hist=recentHistory(5);
+    if(hist.length) bits.push('<span class="pill">🧾 최근 식사: '+hist.slice(0,3).map(h=>dayWord(h.ts)+' '+escapeHtml(h.menu)).join(' · ')+'</span><button id="clearHist">기록 지우기</button>');
+    else bits.push('<span class="pill">🧾 "여기로 결정"을 누르면 메뉴를 기억해 다음엔 겹치지 않게 추천해요</span>');
+    $('context').innerHTML=bits.join('');
+    const c=$('clearHist'); if(c) c.onclick=()=>{saveHistory([]);renderContext();rerank();toast('식사 기록을 지웠어요');};
+  }
+  function badgeHtml(badges){return badges.map(([c,t])=>'<span class="b '+c+'">'+escapeHtml(t)+'</span>').join('')}
+  function renderPick(){
+    const p=state.ranked[state.pickIdx];
+    if(!p){$('pick').classList.remove('show');return;}
+    const s=p.__s;
+    $('pick').classList.add('show');
+    $('pickLabel').textContent=state.pickIdx===0?'👑 오늘은 여기 어때요?':'👉 '+(state.pickIdx+1)+'순위 후보';
+    $('pickName').textContent=p.place_name;
+    $('pickMenu').textContent=menuLabel(p)+' · '+fmtDistance(p.distance)+(p.road_address_name?' · '+p.road_address_name:'');
+    $('pickBadges').innerHTML=badgeHtml(s.badges)+s.tags.map(t=>'<span class="b">'+MOODS[t].label+'</span>').join('');
+    $('pickWhy').innerHTML=s.plus.map(t=>'<li>'+escapeHtml(t)+'</li>').join('')+s.minus.map(t=>'<li style="color:#9ca3af">⚠️ '+escapeHtml(t)+'</li>').join('');
+    $('pickMapBtn').href=placeUrl(p);
+    $('ethics').classList.toggle('show',state.situation==='guest');
+    highlightPickOnMap(p);
+    document.querySelectorAll('.card').forEach(el=>el.classList.toggle('is-pick',+el.dataset.index===state.pickIdx));
+  }
+  function renderList(){
+    const list=$('list');
+    const top=state.ranked.slice(0,12);
+    if(!top.length){
+      list.innerHTML='<div class="empty">⭐ 평점 '+MIN_RATING+' 이상인 곳을 찾지 못했습니다.<br>걷는 거리를 늘리거나 검색어를 바꿔 보세요.</div>';
+      $('summary').textContent='조건에 맞는 후보 0곳';
       return;
     }
+    list.innerHTML=top.map((p,i)=>{
+      const s=p.__s;
+      return '<article class="card'+(i===state.pickIdx?' is-pick':'')+'" data-index="'+i+'">'+
+        '<div class="row"><div class="name"><span class="rank">'+(i+1)+'</span>'+escapeHtml(p.place_name)+'</div><div class="distance">🚶'+s.walk+'분 · '+fmtDistance(Number(p.distance||0))+'</div></div>'+
+        '<div class="cat">'+escapeHtml(menuLabel(p))+'</div>'+
+        '<div class="rating">⭐ '+Number(p.__rating).toFixed(1)+' · 평가 '+Number(p.__ratingCount||0).toLocaleString()+'명 · 후기 '+Number(p.__reviewCount||0).toLocaleString()+'개</div>'+
+        '<div class="mini">'+badgeHtml(s.badges)+s.tags.map(t=>'<span class="b">'+MOODS[t].label+'</span>').join('')+'</div>'+
+        (s.minus.length?'<div class="minus">⚠️ '+escapeHtml(s.minus.join(' · '))+'</div>':'')+
+        '<div class="actions"><a class="action" href="'+placeUrl(p)+'" target="_blank" rel="noopener">🗺️ 상세</a><a class="action" href="'+routeUrl(p)+'" target="_blank" rel="noopener">🧭 길찾기</a></div>'+
+        '</article>';
+    }).join('');
+    document.querySelectorAll('.card').forEach(el=>el.onclick=e=>{if(e.target.closest('a,button'))return;state.pickIdx=+el.dataset.index;renderPick();focusCard(state.pickIdx);$('pick').scrollIntoView({behavior:'smooth',block:'start'});});
+    $('summary').textContent='추천 순위 '+top.length+'곳 (후보 '+state.searchedCount+'곳 중 평점 '+MIN_RATING+'↑) · '+(radiusOpts.find(r=>r[1]===state.radius)||['',state.radius])[0];
+  }
+  function rerank(){
+    renderContext();
+    if(!state.results.length) return;
+    rankResults();
+    renderList();
+    drawMarkers();
+    renderPick();
+  }
+
+  // ── 지도 ──
+  function ensureMap(){
+    if(state.map) return;
+    if(!CONFIG.KAKAO_JS_KEY || CONFIG.KAKAO_JS_KEY==='YOUR_KAKAO_JAVASCRIPT_KEY'){notice('카카오 JavaScript 키가 설정되지 않았습니다.');return;}
     if(!window.kakao){
       const script=document.getElementById('kakao-map-loader');
+      if(script.src) return;
       script.src='https://dapi.kakao.com/v2/maps/sdk.js?appkey='+encodeURIComponent(CONFIG.KAKAO_JS_KEY)+'&libraries=services&autoload=false';
       script.onload=()=>ensureMap();
       script.onerror=()=>notice('카카오 지도 SDK를 불러오지 못했습니다. 카카오 JavaScript 키와 웹 도메인 설정을 확인해 주세요.');
       return;
     }
-    if(!kakao.maps || !kakao.maps.load){
-      notice('카카오 지도 SDK가 정상적으로 초기화되지 않았습니다.');
-      return;
-    }
+    if(!kakao.maps || !kakao.maps.load){notice('카카오 지도 SDK가 정상적으로 초기화되지 않았습니다.');return;}
     kakao.maps.load(function(){
-      const center=new kakao.maps.LatLng(state.lat||37.5665,state.lng||126.9780);
+      if(state.map) return;
+      const center=new kakao.maps.LatLng(state.lat||33.4890,state.lng||126.4983);
       state.map=new kakao.maps.Map($('map'),{center,level:5});
       state.ps=new kakao.maps.services.Places();
       state.geocoder=new kakao.maps.services.Geocoder();
       kakao.maps.event.addListener(state.map,'click',function(mouseEvent){
         const p=mouseEvent.latLng;
-        state.lat=p.getLat();
-        state.lng=p.getLng();
+        state.lat=p.getLat(); state.lng=p.getLng();
         $('locState').textContent='지도에서 선택한 위치';
-        drawUser();
-        search();
+        drawUser(); onLocationChanged();
       });
-      if(state.lat) drawUser();
-      if(state.lat) search();
+      if(state.lat){drawUser();search();}
     });
   }
   function drawUser(){
@@ -133,95 +307,128 @@
     if(state.myMarker)state.myMarker.setMap(null);
     state.myMarker=new kakao.maps.Marker({map:state.map,position:p});
   }
-  function clearMarkers(){state.markers.forEach(m=>m.setMap(null));state.markers=[]}
-  function addMarker(place,idx){
-    const marker=new kakao.maps.Marker({map:state.map,position:new kakao.maps.LatLng(place.y,place.x)});
-    state.markers.push(marker);
-    kakao.maps.event.addListener(marker,'click',()=>focusPlace(idx));
-  }
-  function focusPlace(i){const p=state.results[i]; if(!p)return; if(state.map) state.map.setCenter(new kakao.maps.LatLng(p.y,p.x)); const card=document.querySelector(`.card[data-index="${i}"]`); if(card){document.querySelectorAll('.card.focused').forEach(el=>el.classList.remove('focused'));card.classList.add('focused');card.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>card.classList.remove('focused'),2200);}}
-  function classifyQuery(q){
-    if(!q)return '';
-    const lower=q.toLowerCase();
-    if(['한식','국밥','찌개','냉면','갈비','삼겹살','김치','백반'].some(x=>lower.includes(x)))return '한식';
-    if(['고기','삼겹살','갈비','소고기','돼지','곱창','닭갈비'].some(x=>lower.includes(x)))return '고기';
-    if(['초밥','스시','라멘','돈까스','우동','일식'].some(x=>lower.includes(x)))return '일식';
-    if(['짜장','짬뽕','중식','마라','양꼬치'].some(x=>lower.includes(x)))return '중식';
-    if(['치킨','닭','후라이드'].some(x=>lower.includes(x)))return '치킨';
-    if(['떡볶이','김밥','분식','순대','튀김'].some(x=>lower.includes(x)))return '분식';
-    if(['카페','커피','라떼','디저트','베이커리'].some(x=>lower.includes(x)))return 'CE7';
-    return '';
-  }
-  function proxyUrl(){
-    const configured=String(CONFIG.KAKAO_PROXY_URL||'').trim().replace(/\/$/,'');
-    if(configured) return configured;
-    if(/(^|\.)netlify\.app$/i.test(location.hostname)) return location.origin+'/api/kakao-ratings';
-    return '';
-  }
-
-  function sortResults(){
-    state.results.sort((a,b)=>
-      Number(b.__kakaoRating||0)-Number(a.__kakaoRating||0)
-      || Number(b.__kakaoReviewCount||0)-Number(a.__kakaoReviewCount||0)
-      || Number(a.distance||999999)-Number(b.distance||999999)
-    );
-  }
-
-  async function enrichKakaoRatings(){
-    const url=proxyUrl();
-    if(!url){
-      throw new Error('카카오 평점 중계 서버 주소가 설정되지 않았습니다. 배포 설정을 확인해 주세요.');
-    }
-    const places=state.results.slice(0,15).map(p=>({
-      id:p.id,
-      place_name:p.place_name,
-      address_name:p.address_name,
-      road_address_name:p.road_address_name,
-      x:p.x,
-      y:p.y
-    }));
-    const response=await fetch(url,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=UTF-8'},
-      body:JSON.stringify({places})
+  function drawMarkers(){
+    if(!state.map) return;
+    state.markers.forEach(m=>m.setMap(null)); state.markers=[];
+    state.ranked.slice(0,12).forEach((p,i)=>{
+      const marker=new kakao.maps.Marker({map:state.map,position:new kakao.maps.LatLng(p.y,p.x),title:p.place_name});
+      state.markers.push(marker);
+      kakao.maps.event.addListener(marker,'click',()=>{state.pickIdx=i;renderPick();focusCard(i);});
     });
+  }
+  function highlightPickOnMap(p){
+    if(!state.map||!kakao.maps.CustomOverlay) return;
+    if(state.pickOverlay) state.pickOverlay.setMap(null);
+    const el=document.createElement('div');
+    el.style.cssText='background:#f97316;color:#fff;font-weight:800;font-size:12px;padding:5px 9px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.25);transform:translateY(-44px);white-space:nowrap';
+    el.textContent='👑 '+p.place_name;
+    state.pickOverlay=new kakao.maps.CustomOverlay({map:state.map,position:new kakao.maps.LatLng(p.y,p.x),content:el,yAnchor:1});
+    state.map.panTo(new kakao.maps.LatLng(p.y,p.x));
+  }
+  function focusCard(i){
+    const card=document.querySelector('.card[data-index="'+i+'"]');
+    if(!card) return;
+    document.querySelectorAll('.card.focused').forEach(el=>el.classList.remove('focused'));
+    card.classList.add('focused'); setTimeout(()=>card.classList.remove('focused'),2200);
+  }
+
+  // ── 검색 ──
+  function proxyUrl(){return String(CONFIG.KAKAO_PROXY_URL||'').trim().replace(/\/$/,'')}
+  function distanceMeters(lat1,lng1,lat2,lng2){
+    const R=6371000, toRad=v=>v*Math.PI/180;
+    const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
+    const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+    return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+  // 카카오 장소 검색을 최대 3페이지(45곳)까지 모은다.
+  function searchPages(query,opts){
+    return new Promise(resolve=>{
+      const rows=[];
+      state.ps.keywordSearch(query,function(data,status,pg){
+        const S=kakao.maps.services.Status;
+        if(status===S.OK){
+          rows.push(...data);
+          if(pg&&pg.hasNextPage&&pg.current<3){pg.nextPage();return;}
+          resolve({status:'OK',rows});
+        }else resolve({status:rows.length?'OK':status,rows});
+      },opts);
+    });
+  }
+  async function fetchRatings(rows){
+    const url=proxyUrl();
+    if(!url) throw new Error('카카오 평점 중계 서버 주소가 설정되지 않았습니다.');
+    const places=rows.slice(0,45).map(p=>({id:p.id,place_name:p.place_name,address_name:p.address_name,road_address_name:p.road_address_name,x:p.x,y:p.y}));
+    const response=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({places})});
     if(!response.ok) throw new Error('카카오 평점 중계 서버 응답 오류 ('+response.status+')');
     const data=await response.json();
-    state.lastRatingDiagnostics=data&&data.diagnostics?data.diagnostics:null;
-    const ratings=new Map((Array.isArray(data.places)?data.places:[]).map(x=>[String(x.id),x]));
-    const beforeCount=state.results.length;
-    state.results=state.results.filter(p=>{
-      const r=ratings.get(String(p.id));
-      if(!r || !Number.isFinite(Number(r.rating)) || Number(r.rating)<4) return false;
-      p.__kakaoRating=Number(r.rating);
-      p.__kakaoReviewCount=Number.isFinite(Number(r.reviewCount))?Number(r.reviewCount):0;
-      p.__kakaoSource='kakaomap';
-      return true;
-    });
-    if(!state.results.length && state.lastRatingDiagnostics){
-      const d=state.lastRatingDiagnostics;
-      const detail=[
-        `검색 후보 ${beforeCount}곳`,
-        `중계 요청 ${d.requests}회`,
-        `정상 응답 ${d.responses}회`,
-        `평점 확인 ${d.rated}곳`
-      ];
-      if(d.httpErrors) detail.push(`HTTP 오류 ${d.httpErrors}회`);
-      if(d.parseErrors) detail.push(`JSON 오류 ${d.parseErrors}회`);
-      if(d.exceptions) detail.push(`예외 ${d.exceptions}회`);
-      if(d.lastError) detail.push(String(d.lastError).slice(0,220));
-      notice('평점 중계 진단: '+detail.join(' · '));
-    }
+    state.lastRatingDiagnostics=data&&data.diagnostics||null;
+    return new Map((Array.isArray(data.places)?data.places:[]).map(x=>[String(x.id),x]));
+  }
+  async function search(){
+    if(state.lat==null){ensureMap();notice('현재 위치를 사용하거나 위쪽에서 원하는 지역을 먼저 찾아주세요.');return;}
+    if(!state.ps){ensureMap();return;}
+    if(state.busy) return;
+    state.busy=true;
+    let again=false;
+    clearNotice();
+    $('summary').textContent='🔎 주변 음식점 최대 45곳의 평점을 확인하는 중…';
+    try{
+      const q=$('query').value.trim();
+      const query=q||'음식점';
+      const opts={location:new kakao.maps.LatLng(state.lat,state.lng),radius:Math.min(Math.max(state.radius,100),20000),sort:kakao.maps.services.SortBy.DISTANCE,size:15};
+      let res=await searchPages(query,opts);
+      if(res.status===kakao.maps.services.Status.ERROR) res=await searchPages(query,{location:opts.location,size:15});
+      if(res.status!=='OK'&&res.status!==kakao.maps.services.Status.ZERO_RESULT){
+        notice('카카오 장소 검색에 실패했습니다. 카카오 JavaScript 키의 웹 도메인 설정 또는 일시적인 API 오류를 확인해 주세요.');
+        return;
+      }
+      const seen=new Set();
+      const rows=res.rows.filter(p=>{
+        if(seen.has(p.id)) return false; seen.add(p.id);
+        const code=String(p.category_group_code||'');
+        return code==='FD6'||code==='CE7'||/음식|식당|요리/.test(String(p.category_name||''));
+      }).map(p=>Object.assign({},p,{distance:(p.distance!==undefined&&p.distance!=='')?Number(p.distance):distanceMeters(state.lat,state.lng,Number(p.y),Number(p.x))}))
+        .filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);
+      state.searchedCount=rows.length;
+      const ratings=rows.length?await fetchRatings(rows):new Map();
+      state.results=rows.filter(p=>{
+        const r=ratings.get(String(p.id));
+        if(!r||!Number.isFinite(Number(r.rating))||Number(r.rating)<MIN_RATING) return false;
+        p.__rating=Number(r.rating);
+        p.__reviewCount=Number.isFinite(Number(r.reviewCount))?Number(r.reviewCount):0;
+        p.__ratingCount=Number.isFinite(Number(r.ratingCount))?Number(r.ratingCount):NaN;
+        return true;
+      });
+      // 후보가 너무 적으면 한 번은 자동으로 걷는 거리를 넓힌다
+      if(state.results.length<3&&!q&&!state.autoExpanded){
+        const next=radiusOpts.find(r=>r[1]>state.radius);
+        if(next){
+          state.autoExpanded=true; state.radius=next[1]; renderChips();
+          toast('주변 후보가 적어 범위를 '+next[0]+'로 넓혔어요');
+          again=true;
+          return;
+        }
+      }
+      rerank();
+      if(!state.results.length){
+        renderList(); renderPick();
+        const d=state.lastRatingDiagnostics;
+        if(d&&(d.httpErrors||d.exceptions||d.parseErrors)) notice('평점 중계 진단: 요청 '+d.requests+'회 · 평점 확인 '+d.rated+'곳'+(d.lastError?' · '+String(d.lastError).slice(0,160):''));
+      }
+    }catch(error){
+      state.results=[];state.ranked=[];renderList();renderPick();
+      notice(error.message||'카카오맵 평점 데이터를 가져오지 못했습니다.');
+    }finally{state.busy=false;if(again)search();}
   }
 
+  // ── 위치 ──
+  function onLocationChanged(){state.autoExpanded=false;loadWeather();search();}
   function setSearchCenter(lat,lng,label){
-    state.lat=Number(lat);
-    state.lng=Number(lng);
+    state.lat=Number(lat); state.lng=Number(lng);
     $('locState').textContent=label||'검색 위치 설정 완료';
     ensureMap();
-    setTimeout(()=>{drawUser();search();},0);
+    setTimeout(()=>{drawUser();onLocationChanged();},0);
   }
-
   function locationResultCallback(data,status){
     if(status===kakao.maps.services.Status.OK && data && data.length){
       const p=data[0];
@@ -229,202 +436,85 @@
       $('locationQuery').value=p.place_name||$('locationQuery').value;
       return;
     }
-    if(state.geocoder){
-      state.geocoder.addressSearch($('locationQuery').value.trim(),function(result,addressStatus){
-        if(addressStatus===kakao.maps.services.Status.OK && result && result.length){
-          const p=result[0];
-          setSearchCenter(p.y,p.x,(p.address_name||'검색 위치')+' 기준');
-          return;
-        }
-        notice('입력한 지역을 찾지 못했습니다. 예: 강남역, 서울역, 성수동, 도로명주소');
-      });
-    }else{
-      notice('위치 검색을 초기화하지 못했습니다.');
-    }
+    state.geocoder.addressSearch($('locationQuery').value.trim(),function(result,addressStatus){
+      if(addressStatus===kakao.maps.services.Status.OK && result && result.length){
+        setSearchCenter(result[0].y,result[0].x,(result[0].address_name||'검색 위치')+' 기준');
+        return;
+      }
+      notice('입력한 지역을 찾지 못했습니다. 예: 제주도청, 노형동, 도로명주소');
+    });
   }
-
   function findLocation(){
     const q=$('locationQuery').value.trim();
     if(!q){notice('찾을 지역이나 주소를 입력해 주세요.');return;}
-    clearNotice();
-    ensureMap();
-    if(!state.ps){
-      setTimeout(findLocation,300);
-      return;
-    }
+    clearNotice(); ensureMap();
+    if(!state.ps){setTimeout(findLocation,300);return;}
     state.ps.keywordSearch(q,locationResultCallback,{size:5});
   }
-  function doCategorySearch(){
-    if(!state.ps||state.lat==null)return;
-    clearNotice();
-    const location=new kakao.maps.LatLng(state.lat,state.lng);
-    const sortDistance='distance';
-    const opts={location,radius:Math.min(Math.max(Number(state.radius)||2000,100),20000),sort:sortDistance,size:15};
-    const q=$('query').value.trim();
-    if(q){
-      state.searchMode='direct';
-      state.searchQuery=q;
-      state.ps.keywordSearch(q,cb,opts);
-      return;
-    }
-    state.searchMode='category';
-    const keywordMap={FD6:'음식점',CE7:'카페',한식:'한식 음식점',고기:'고기 음식점',일식:'일식 음식점',중식:'중식 음식점',치킨:'치킨 음식점',분식:'분식 음식점'};
-    state.searchQuery=keywordMap[state.category]||'음식점';
-    state.ps.keywordSearch(state.searchQuery,cb,opts);
-  }
-  function distanceMeters(lat1,lng1,lat2,lng2){
-    const R=6371000, toRad=v=>v*Math.PI/180;
-    const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
-    const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
-    return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-  }
-
-  function filterSearchRows(data){
-    let rows=Array.isArray(data)?data:[];
-    const wanted=state.searchMode==='category'?state.category:null;
-    rows=rows.filter(p=>{
-      const code=String(p.category_group_code||'');
-      const cat=String(p.category_name||'');
-      if(state.searchMode==='direct') return code==='FD6'||code==='CE7';
-      if(wanted==='CE7') return code==='CE7'||/카페|커피|베이커리/.test(cat);
-      return code==='FD6'||/음식|한식|고기|일식|중식|치킨|분식|식당|요리/.test(cat);
-    });
-    rows=rows.map(p=>{
-      const d=(p.distance!==undefined&&p.distance!=='')?Number(p.distance):distanceMeters(state.lat,state.lng,Number(p.y),Number(p.x));
-      return Object.assign({},p,{distance:d});
-    });
-    return rows.filter(p=>Number(p.distance)<=Number(state.radius)||!Number.isFinite(Number(p.distance)));
-  }
-
-  async function cb(data,status,pagination){
-    if(status===kakao.maps.services.Status.OK){
-      state.searchAttempts=0;
-      state.results=filterSearchRows(data);
-      try{
-        await enrichKakaoRatings();
-        sortResults();
-        renderResults();
-        clearMarkers();
-        drawUser();
-        state.results.slice(0,5).forEach(addMarker);
-        if(state.results.length)state.map.setCenter(new kakao.maps.LatLng(state.lat,state.lng));
-        clearNotice();
-      }catch(error){
-        state.results=[];
-        renderResults();
-        notice(error.message||'카카오맵 평점 데이터를 가져오지 못했습니다.');
-      }
-      return;
-    }
-    if(status===kakao.maps.services.Status.ZERO_RESULT){
-      state.results=[];
-      renderResults();
-      return;
-    }
-    if(status===kakao.maps.services.Status.ERROR){
-      const attempt=Number(state.searchAttempts||0);
-      if(attempt===0){
-        state.searchAttempts=1;
-        state.ps.keywordSearch(state.searchQuery,cb,{location:new kakao.maps.LatLng(state.lat,state.lng),size:15});
-        return;
-      }
-      if(attempt===1){
-        state.searchAttempts=2;
-        state.ps.keywordSearch(state.searchQuery,cb,{size:15});
-        return;
-      }
-    }
-    notice('카카오 장소 검색에 실패했습니다. 카카오 JavaScript 키의 웹 도메인 설정 또는 일시적인 API 오류를 확인해 주세요.');
-  }
-  function renderResults(){
-    const list=$('list');
-    const visible=state.results.slice(0,5);
-    if(!state.results.length){
-      list.innerHTML='<div class="empty">⭐ 카카오맵 평점 4.0 이상인 음식점을 찾지 못했습니다.<br>반경을 넓히거나 검색어를 바꿔보세요.</div>';
-      $('summary').textContent='카카오 평점 4.0 이상 결과 0곳';
-      return;
-    }
-    sortResults();
-        list.innerHTML=visible.map((p,i)=>{
-      const addr=p.road_address_name||p.address_name||'주소 정보 없음';
-      const nurl=naverUrl(p.place_name,addr);
-      const mapurl=mapsUrl(p);
-      const rating=Number(p.__kakaoRating);
-      const reviewCount=Number(p.__kakaoReviewCount||0);
-      const rankBadge='';
-      return '<article class="card" data-index="'+i+'">'+
-        '<div class="row"><div class="name">'+escapeHtml(p.place_name)+'</div><div class="distance">'+fmtDistance(Number(p.distance||0))+'</div></div>'+
-        '<div class="cat">'+escapeHtml(p.category_name||'음식점')+'</div>'+
-        '<div class="kakao-rating">⭐ '+rating.toFixed(1)+' · 💬 후기글 '+reviewCount.toLocaleString()+'개</div>'+
-        '<div class="addr">'+escapeHtml(addr)+'</div>'+
-        (p.phone?'<div class="phone">☎ '+escapeHtml(p.phone)+'</div>':'')+
-        rankBadge+' <span class="badge">✓ 카카오맵 데이터</span>'+
-        '<div class="actions">'+
-          '<a class="action primary" href="'+mapurl+'">🗺️ 카카오맵</a>'+
-          '<a class="action" href="'+nurl+'" target="_blank" rel="noopener">📝 네이버 후기</a>'+
-        '</div></article>';
-    }).join('');
-    document.querySelectorAll('.card').forEach(el=>el.onclick=e=>{if(e.target.closest('a,button'))return;focusPlace(+el.dataset.index)});
-    $('summary').textContent='지금 갈 만한 후보 '+visible.length+'곳 · 카카오 평점 4.0 이상 · '+fmtDistance(state.radius)+' 이내';
-  }
-  function escapeHtml(s){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
-  function search(){
-    if(state.lat==null){
-      ensureMap();
-      notice('현재 위치를 사용하거나 위쪽에서 원하는 지역을 먼저 찾아주세요.');
-      return;
-    }
-    if(!state.ps){ensureMap();return;}
-    doCategorySearch();
-  }
   function getLocation(){
-    if(!navigator.geolocation){
-      notice('이 브라우저는 위치 기능을 지원하지 않습니다. 위쪽의 지역 검색을 이용해 주세요.');
-      return;
-    }
+    if(!navigator.geolocation){notice('이 브라우저는 위치 기능을 지원하지 않습니다. 위쪽의 지역 검색을 이용해 주세요.');return;}
     clearNotice();
     $('locState').textContent='현재 위치를 확인하는 중…';
     navigator.geolocation.getCurrentPosition(pos=>{
-      state.lat=pos.coords.latitude;
-      state.lng=pos.coords.longitude;
+      state.lat=pos.coords.latitude; state.lng=pos.coords.longitude;
       $('locState').textContent='현재 위치 확인 완료';
       ensureMap();
-      setTimeout(()=>{drawUser();search();},0);
+      setTimeout(()=>{drawUser();onLocationChanged();},0);
     },err=>{
       $('locState').textContent='위치 권한을 사용할 수 없습니다.';
       notice(err.code===1?'위치 권한이 거부되었습니다. 위쪽에서 지역·주소를 직접 검색해 주세요.':'현재 위치를 가져오지 못했습니다. 위쪽에서 원하는 지역을 직접 검색해 주세요.');
     },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
   }
+
+  // ── 결정 버튼들 ──
+  $('decideBtn').onclick=()=>{
+    const p=state.ranked[state.pickIdx]; if(!p) return;
+    const hist=loadHistory().filter(h=>!(String(h.id)===String(p.id)&&daysAgo(h.ts)<0.5));
+    hist.unshift({id:String(p.id),name:p.place_name,menu:menuLabel(p),tags:p.__s.tags,ts:Date.now()});
+    saveHistory(hist);
+    renderContext();
+    toast('✅ '+p.place_name+' 기록 완료! 다음엔 다른 메뉴로 추천할게요');
+    window.open(routeUrl(p),'_blank','noopener');
+  };
+  $('nextBtn').onclick=()=>{
+    if(!state.ranked.length) return;
+    state.pickIdx=(state.pickIdx+1)%Math.min(state.ranked.length,12);
+    renderPick(); focusCard(state.pickIdx);
+  };
+  $('luckyBtn').onclick=()=>{
+    const pool=state.ranked.slice(0,5); if(!pool.length) return;
+    const weights=pool.map((p,i)=>5-i), total=weights.reduce((a,b)=>a+b,0);
+    let r=Math.random()*total, target=0;
+    for(let i=0;i<weights.length;i++){r-=weights[i];if(r<=0){target=i;break;}}
+    let n=0; $('pick').classList.add('spin');
+    const timer=setInterval(()=>{
+      $('pickName').textContent=pool[n++%pool.length].place_name;
+      if(n>14){clearInterval(timer);$('pick').classList.remove('spin');state.pickIdx=target;renderPick();focusCard(target);toast('🎲 운명의 선택: '+pool[target].place_name);}
+    },80);
+  };
+  $('shareBtn').onclick=async()=>{
+    const top=state.ranked.slice(0,3); if(!top.length) return;
+    const text='[오늘 점심 후보 · 지금 여기 맛집]\n'+top.map((p,i)=>(i+1)+'. '+p.place_name+' ('+menuLabel(p)+' · ⭐'+Number(p.__rating).toFixed(1)+' · 도보 '+p.__s.walk+'분)\n   '+placeUrl(p)).join('\n')+'\n👉 번호로 골라주세요!';
+    try{
+      if(navigator.share){await navigator.share({title:'오늘 점심 후보',text});return;}
+      await navigator.clipboard.writeText(text); toast('📋 후보 3곳을 복사했어요. 메신저에 붙여넣으세요');
+    }catch(e){ if(e&&e.name!=='AbortError') toast('공유하지 못했어요'); }
+  };
+
   $('locBtn').onclick=getLocation;
   $('locationSearchBtn').onclick=findLocation;
   $('locationQuery').addEventListener('keydown',e=>{if(e.key==='Enter')findLocation()});
-  $('searchBtn').onclick=()=>{$('query').blur();search()};
-  $('query').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
-  $('randomBtn').onclick=()=>{
-    if(!state.results.length){notice('먼저 현재 위치나 원하는 지역을 검색해 주세요.');return;}
-    const candidates=state.results.slice(0,5);
-    const pick=candidates[Math.floor(Math.random()*candidates.length)];
-    const idx=state.results.indexOf(pick);
-    renderResults();
-    focusPlace(idx);
-    const card=document.querySelector('.card[data-index="'+idx+'"]');
-    if(card){card.classList.add('focused');setTimeout(()=>card.classList.remove('focused'),3000);}
-  };
-  $('showAllBtn').onclick=()=>{renderResults();document.querySelector('.listwrap').scrollIntoView({behavior:'smooth',block:'start'});};
+  $('searchBtn').onclick=()=>{$('query').blur();state.autoExpanded=false;search()};
+  $('query').addEventListener('keydown',e=>{if(e.key==='Enter'){state.autoExpanded=false;search()}});
   renderChips();
+  renderContext();
 
   let deferredPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBar').classList.add('show')});$('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;$('installBar').classList.remove('show')};
   if('serviceWorker' in navigator){
-    Promise.all([
-      navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))),
-      window.caches ? caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))) : Promise.resolve()
-    ]).finally(()=>{
-      navigator.serviceWorker.register('./sw.js?v=8',{updateViaCache:'none'}).catch(()=>{});
-    });
+    navigator.serviceWorker.register('./sw.js?v=9',{updateViaCache:'none'}).catch(()=>{});
   }
-  if(location.protocol==='file:') notice('이 파일을 더블클릭해 여는 것보다 GitHub Pages 같은 HTTPS 사이트에 올려 사용하세요. 위치 기능과 설치 기능이 안정적으로 동작합니다.');
   if(!CONFIG.KAKAO_JS_KEY || CONFIG.KAKAO_JS_KEY==='YOUR_KAKAO_JAVASCRIPT_KEY'){
-    notice('처음 한 번만 카카오 JavaScript 키를 설정하면 됩니다. README의 배포 설정을 따라 주세요.');
+    notice('카카오 JavaScript 키가 설정되지 않았습니다.');
   }
 })();
 </script>
