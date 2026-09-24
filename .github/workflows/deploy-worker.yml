@@ -42,10 +42,21 @@ jobs:
           fi
           echo "::add-mask::$TOKEN"
           echo "Token length after sanitize: ${#TOKEN}"
+          if [ "${#TOKEN}" -lt 40 ]; then
+            echo "::warning::토큰 길이가 ${#TOKEN}자입니다. Cloudflare API 토큰은 보통 40자 이상이므로 Secret 값이 토큰이 아닐 수 있습니다(토큰 이름/ID/Global API Key 등)."
+          fi
+          show_errors() {
+            python3 -c "import json,sys
+          try: d=json.load(open(sys.argv[1]))
+          except Exception: sys.exit(0)
+          print('Cloudflare errors:', json.dumps(d.get('errors'), ensure_ascii=False))" "$1" || true
+          }
 
           VERIFIED=""
-          if curl -fsS -H "Authorization: Bearer $TOKEN" "$CF_API/user/tokens/verify" -o /tmp/verify-user.json; then
+          if curl -sS --fail-with-body -H "Authorization: Bearer $TOKEN" "$CF_API/user/tokens/verify" -o /tmp/verify-user.json; then
             VERIFIED="user"
+          else
+            show_errors /tmp/verify-user.json
           fi
 
           if [ -z "$ACCOUNT_ID" ]; then
@@ -59,9 +70,11 @@ jobs:
           fi
           echo "Account ID length: ${#ACCOUNT_ID}"
 
-          if [ -z "$VERIFIED" ] && curl -fsS -H "Authorization: Bearer $TOKEN" \
+          if [ -z "$VERIFIED" ] && curl -sS --fail-with-body -H "Authorization: Bearer $TOKEN" \
                "$CF_API/accounts/$ACCOUNT_ID/tokens/verify" -o /tmp/verify-account.json; then
             VERIFIED="account"
+          elif [ -z "$VERIFIED" ]; then
+            show_errors /tmp/verify-account.json
           fi
           if [ -z "$VERIFIED" ]; then
             echo "::error::Cloudflare API 토큰 검증 실패. 'Edit Cloudflare Workers' 템플릿으로 만든 토큰 값만 Secret 에 넣었는지 확인하세요."
