@@ -8,6 +8,7 @@ on:
       - "config.js"
       - "index.html"
       - "install.html"
+      - "about.html"
       - "sw.js"
       - "api/**"
       - "worker/src/**"
