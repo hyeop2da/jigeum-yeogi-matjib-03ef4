@@ -139,7 +139,7 @@
   const MIN_RATING=3.7;
   const MAX_SHOW=30;
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
-  const state={lat:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
+  const state={lat:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
   const radiusOpts=[['도보 5분',400],['도보 10분',800],['도보 15분',1200],['2km',2000],['3km',3000],['5km',5000]];
   const WEEKDAYS=['일','월','화','수','목','금','토'];
 
@@ -365,7 +365,7 @@
     $('radiusChips').innerHTML=radiusOpts.map(([t,v])=>`<button class="chip ${state.radius===v?'active':''}" data-radius="${v}">${t}${v<=1200?' · '+fmtDistance(v):''}</button>`).join('');
     document.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{state.situation=b.dataset.sit;renderChips();rerank()});
     document.querySelectorAll('[data-food]').forEach(b=>b.onclick=()=>{state.food=b.dataset.food;$('query').value='';state.autoExpanded=false;renderChips();search()});
-    document.querySelectorAll('[data-radius]').forEach(b=>b.onclick=()=>{state.radius=+b.dataset.radius;state.autoExpanded=false;renderChips();search()});
+    document.querySelectorAll('[data-radius]').forEach(b=>b.onclick=()=>{state.radius=+b.dataset.radius;state.radiusLocked=true;renderChips();search()});
   }
   function renderContext(){
     const bits=[];
@@ -587,14 +587,15 @@
         return p.__rating!=null&&p.__rating>=MIN_RATING;
       });
       if(down) notice('⚠️ 지금은 평점 정보를 불러올 수 없어 거리·조건 기준으로 추천해요. 잠시 후 다시 검색하면 평점이 반영돼요.');
-      // 후보가 너무 적으면 한 번은 자동으로 걷는 범위를 넓힌다
-      if(state.results.length<3&&(!q||drink)&&!state.autoExpanded){
-        const next=radiusOpts.find(r=>r[1]>state.radius);
-        if(next){
-          state.autoExpanded=true; state.radius=next[1]; renderChips();
-          toast('주변 후보가 적어 범위를 '+next[0]+'로 넓혔어요');
-          again=true; return;
-        }
+      // 후보가 너무 적으면 한 번은 자동으로 걷는 범위를 넓힌다. 사용자가 거리를 직접 골랐으면 안내만 한다
+      const next=state.results.length<3?radiusOpts.find(r=>r[1]>state.radius):null;
+      if(next&&state.radiusLocked){
+        const cur=radiusOpts.find(r=>r[1]===state.radius);
+        toast((cur?cur[0]:'이 범위')+' 안에 후보가 '+state.results.length+'곳이에요 · 더 보려면 거리를 늘려 보세요');
+      }else if(next&&(!q||drink)&&!state.autoExpanded){
+        state.autoExpanded=true; state.radius=next[1]; renderChips();
+        toast('주변 후보가 적어 '+next[0]+' 거리까지 넓혔어요');
+        again=true; return;
       }
       rankResults(); renderContext(); renderList(); drawMarkers(); renderPick();
     }catch(error){
