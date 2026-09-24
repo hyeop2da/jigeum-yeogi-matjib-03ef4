@@ -734,6 +734,8 @@
         w.addEventListener('statechange',()=>{if(w.state==='activated'&&hadController) $('updateBar').classList.add('show');});
       });
       setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+      // 백그라운드에 있던 앱을 다시 열면 바로 새 버전을 확인한다
+      document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') reg.update().catch(()=>{});});
     }).catch(()=>{});
   }
   $('updateBtn').onclick=()=>location.reload();
