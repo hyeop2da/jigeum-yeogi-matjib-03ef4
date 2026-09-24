@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-layout-v5">
+<body data-app-version="2026-09-25-walk-route">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -111,9 +111,9 @@
 
 
     <div class="footer">
-      <div class="source">데이터 출처: 카카오 장소 검색 · 카카오맵 평점 · Open-Meteo 날씨</div>
+      <div class="source">데이터 출처: 카카오 장소 검색 · 카카오맵 평점 · Open-Meteo 날씨 · OpenStreetMap 도보 경로(FOSSGIS)</div>
       <p>추천 순위는 카카오맵 평점을 <b>평가 인원수로 보정한 신뢰 점수</b>에 거리·상황·날씨·최근 방문 기록을 더해 계산합니다. 평점은 카카오맵 데이터이며 정확성을 보장하지 않습니다.</p>
-      <p><b>개인정보 안내</b> · 위치는 이 기기에서 주변 검색에만 쓰이며, 검색을 위해 카카오 지도 서비스에 좌표가 전달됩니다. 날씨 조회에는 약 100m 단위로 줄인 좌표만 전송합니다. 평점 조회 시에는 가게 이름·주소만 중계 서버로 보내며 별도로 저장하지 않습니다. 점심·저녁 기록은 <b>이 기기에만</b> 저장되고 서버로 전송되지 않습니다.</p>
+      <p><b>개인정보 안내</b> · 위치는 이 기기에서 주변 검색에만 쓰이며, 검색을 위해 카카오 지도 서비스에 좌표가 전달됩니다. 날씨 조회에는 약 100m 단위로 줄인 좌표만 전송합니다. 도보 거리 계산을 위해 출발 좌표(약 10m 단위)와 가게 좌표를 오픈스트리트맵 경로 서버(FOSSGIS)로 보냅니다. 평점 조회 시에는 가게 이름·주소만 중계 서버로 보내며 별도로 저장하지 않습니다. 점심·저녁 기록은 <b>이 기기에만</b> 저장되고 서버로 전송되지 않습니다.</p>
       <p id="kakaoPrefRow" style="display:none">카카오맵 열기 방식: <b id="kakaoPrefText"></b> · <button class="link" id="kakaoPrefReset">바꾸기</button></p>
       <p>이 앱은 개인이 만든 <b>비공식 서비스</b>로, 제주특별자치도의 공식 서비스가 아닙니다.</p>
     </div>
@@ -139,8 +139,9 @@
   const MIN_RATING=3.7;
   const MAX_SHOW=30;
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
-  const state={meal:'lunch',lat:null,startName:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
-  const radiusOpts=[['도보 5분',400],['도보 10분',800],['도보 15분',1200],['2km',2000],['3km',3000],['5km',5000]];
+  const state={meal:'lunch',lat:null,startName:null,lng:null,radius:1000,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
+  // 반경은 '길 따라 걷는 거리' 기준 (분당 67m = 시속 4km)
+  const radiusOpts=[['도보 5분',335],['도보 10분',670],['도보 15분',1000],['2km',2000],['3km',3000],['5km',5000]];
   const WEEKDAYS=['일','월','화','수','목','금','토'];
 
   // 음식 종류: [키, 칩 이름, 카카오 검색어, 카테고리 판별]
@@ -216,7 +217,9 @@
   let toastTimer=null;
   function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2600)}
   function fmtDistance(m){return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'}
-  function walkMin(m){return Math.max(1,Math.round(Number(m||0)/70))}
+  const WALK_MPM=67, DETOUR=1.4;
+  function walkMin(m){return Math.max(1,Math.round(Number(m||0)/WALK_MPM))}
+  function distText(p){return (p.__est?'약 ':'')+fmtDistance(p.distance)}
   function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
   function placeUrl(p){const u=p.place_url||('https://place.map.kakao.com/'+encodeURIComponent(p.id));return String(u).replace(/^http:/,'https:')}
   function menuLabel(p){const parts=String(p.category_name||'').split('>').map(s=>s.trim()).filter(Boolean);return parts.length?parts[parts.length-1]:'음식점'}
@@ -388,9 +391,10 @@
       const same=loadHistory().find(h=>daysBetween(h.ts)<3&&h.menu&&h.menu===menuLabel(p));
       if(same){s-=8;minus.push(whenText(same.ts)+' 먹은 메뉴('+same.menu+')와 같아요');}
     }
-    if(state.meal==='dinner') plus.push(walk<=20?'🚶 도보 '+walk+'분':'🚕 '+fmtDistance(p.distance)+' · 택시로 약 '+Math.max(3,Math.round(p.distance/400))+'분');
-    else if(walk<=20) plus.push('🚶 도보 '+walk+'분 · 점심 60분 중 식사 '+(60-walk*2)+'분 확보');
-    else plus.push('🚗 '+fmtDistance(p.distance)+' 거리 (차량 이동 권장)');
+    const walkTxt=p.__est?'🚶 도보 약 '+walk+'분 (직선 거리로 추정)':'🚶 도보 '+walk+'분 (길 따라 '+fmtDistance(p.distance)+')';
+    if(state.meal==='dinner') plus.push(walk<=20?walkTxt:'🚕 '+distText(p)+' · 택시로 약 '+Math.max(3,Math.round(p.distance/400))+'분');
+    else if(walk<=20) plus.push(walkTxt+' · 점심 60분 중 식사 '+(60-walk*2)+'분 확보');
+    else plus.push('🚗 '+distText(p)+' 거리 (차량 이동 권장)');
     return {score:s,plus,minus,badges,walk,visit};
   }
   function rankResults(){
@@ -404,7 +408,7 @@
     document.querySelectorAll('[data-meal]').forEach(b=>{const on=b.dataset.meal===state.meal;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));});
     $('situationChips').innerHTML=Object.keys(SITUATIONS).map(k=>`<button class="chip ${state.situation===k?'active':''}" data-sit="${k}">${SITUATIONS[k].label}</button>`).join('');
     $('foodChips').innerHTML=FOODS.map(([k,l])=>`<button class="chip ${state.food===k?'active':''}" data-food="${k}">${l}</button>`).join('');
-    $('radiusChips').innerHTML=radiusOpts.map(([t,v])=>`<button class="chip ${state.radius===v?'active':''}" data-radius="${v}">${t}${v<=1200?' · '+fmtDistance(v):''}</button>`).join('');
+    $('radiusChips').innerHTML=radiusOpts.map(([t,v])=>`<button class="chip ${state.radius===v?'active':''}" data-radius="${v}">${t}</button>`).join('');
     document.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{state.situation=b.dataset.sit;renderChips();rerank()});
     document.querySelectorAll('[data-food]').forEach(b=>b.onclick=()=>{state.food=b.dataset.food;$('query').value='';state.autoExpanded=false;renderChips();search()});
     document.querySelectorAll('[data-radius]').forEach(b=>b.onclick=()=>{state.radius=+b.dataset.radius;state.radiusLocked=true;renderChips();search()});
@@ -425,7 +429,7 @@
     $('pickVisited').classList.toggle('show',!!s.visit);
     $('pickLabel').textContent=state.pickIdx===0?(state.meal==='dinner'?'👑 오늘 저녁 1차, 여기 어때요?':'👑 오늘은 여기 어때요?'):'👉 '+(state.pickIdx+1)+'순위 후보';
     $('pickName').textContent=p.place_name;
-    $('pickMenu').textContent=foodLabelOf(p)+' · '+menuLabel(p)+' · '+fmtDistance(p.distance)+(p.road_address_name?' · '+p.road_address_name:'');
+    $('pickMenu').textContent=foodLabelOf(p)+' · '+menuLabel(p)+' · '+distText(p)+(p.road_address_name?' · '+p.road_address_name:'');
     $('pickBadges').innerHTML=badgeHtml(s.badges);
     $('pickWhy').innerHTML=s.plus.map(t=>'<li>'+escapeHtml(t)+'</li>').join('')+s.minus.map(t=>'<li class="minus">'+escapeHtml(t)+'</li>').join('');
     $('ethics').classList.toggle('show',!!SITUATIONS[state.situation].formal);
@@ -445,7 +449,7 @@
       const rating=p.__rating!=null?'⭐ '+p.__rating.toFixed(1)+' · 평가 '+Number(p.__ratingCount||0).toLocaleString()+'명 · 후기 '+Number(p.__reviewCount||0).toLocaleString()+'개':'평점 정보 없음';
       return '<article class="card'+(i===state.pickIdx?' is-pick':'')+'" data-index="'+i+'">'+
         (s.visit?'<div class="mini" style="margin:0 0 6px"><span class="b red">🔁 '+escapeHtml(whenText(s.visit.ts))+' 방문</span></div>':'')+
-        '<div class="row"><div class="name"><span class="rank">'+(i+1)+'</span>'+escapeHtml(p.place_name)+'</div><div class="distance">🚶'+s.walk+'분 · '+fmtDistance(Number(p.distance||0))+'</div></div>'+
+        '<div class="row"><div class="name"><span class="rank">'+(i+1)+'</span>'+escapeHtml(p.place_name)+'</div><div class="distance">🚶'+(p.__est?'약 ':'')+s.walk+'분 · '+distText(p)+'</div></div>'+
         '<div class="cat">'+escapeHtml(foodLabelOf(p)+' · '+menuLabel(p))+'</div>'+
         '<div class="rating">'+rating+'</div>'+
         (s.badges.length?'<div class="mini">'+badgeHtml(s.badges)+'</div>':'')+
@@ -560,6 +564,31 @@
       },opts);
     });
   }
+  // 도보 거리: 오픈스트리트맵 경로 서버(FOSSGIS, 무료·키 없음)에 한 번에 물어본다. 실패하면 직선 거리×1.4로 추정
+  const ROUTE_URL='https://routing.openstreetmap.de/routed-foot/table/v1/foot/';
+  const routeCache=new Map();
+  async function applyWalkRoutes(rows){
+    const lat=state.lat.toFixed(4), lng=state.lng.toFixed(4);
+    rows.forEach(p=>{p.__straight=p.distance;});
+    const key=p=>lat+','+lng+'|'+p.id;
+    const todo=rows.filter(p=>!routeCache.has(key(p))&&Number.isFinite(Number(p.x))).sort((a,b)=>a.__straight-b.__straight).slice(0,90);
+    if(todo.length){
+      try{
+        const coords=[lng+','+lat].concat(todo.map(p=>Number(p.x).toFixed(5)+','+Number(p.y).toFixed(5))).join(';');
+        const r=await fetch(ROUTE_URL+coords+'?sources=0&annotations=distance',{signal:AbortSignal.timeout?AbortSignal.timeout(6000):undefined});
+        const d=r.ok?await r.json():null;
+        const dist=d&&d.code==='Ok'&&d.distances&&d.distances[0];
+        if(dist) todo.forEach((p,i)=>routeCache.set(key(p),dist[i+1]));
+      }catch(e){}
+    }
+    rows.forEach(p=>{
+      const straight=Number(p.__straight), route=routeCache.get(key(p));
+      // 지도 데이터가 비어 터무니없이 먼 경로가 나오면 추정값을 쓴다
+      const ok=Number.isFinite(route)&&route!==null&&(!Number.isFinite(straight)||route<=straight*3+300);
+      p.__est=!ok;
+      p.distance=ok?Math.max(route,straight||0):(Number.isFinite(straight)?straight*DETOUR:straight);
+    });
+  }
   async function mapLimit(items,limit,fn){
     let next=0;
     await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(next<items.length){const i=next++;await fn(items[i]);}}));
@@ -628,6 +657,7 @@
       });
       rows=rows.map(p=>Object.assign({},p,{distance:(p.distance!==undefined&&p.distance!=='')?Number(p.distance):distanceMeters(state.lat,state.lng,Number(p.y),Number(p.x))}))
         .filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);
+      if(rows.length){await applyWalkRoutes(rows);rows=rows.filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);}
       if(drink&&drink.narrow){const picked=rows.filter(p=>drink.narrow.test(textOf(p)));if(picked.length) rows=picked;}
       state.searchedCount=rows.length;
       const {result,down}=rows.length?await fetchRatings(rows):{result:new Map(),down:false};

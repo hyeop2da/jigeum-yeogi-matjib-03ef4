@@ -132,3 +132,39 @@ jobs:
             echo "Pages 반영 대기 $i/30"; sleep 10
           done
           exit 1
+
+      - name: Walking route server (FOSSGIS OSRM foot)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY3'
+          import json, math, urllib.request, time
+          O = "https://hyeop2da.github.io"
+          start = (126.4984, 33.4889)  # 제주도청
+          dest = (126.52000128, 33.5115169)  # 우진해장국
+          pts = [dest] + [(start[0] + 0.004 * math.cos(i), start[1] + 0.004 * math.sin(i)) for i in range(89)]
+          coords = ";".join(f"{x:.5f},{y:.5f}" for x, y in [start] + pts)
+          url = "https://routing.openstreetmap.de/routed-foot/table/v1/foot/" + coords + "?sources=0&annotations=distance"
+          req = urllib.request.Request(url, headers={"Origin": O, "Referer": O + "/jigeum-yeogi-matjib-03ef4/"})
+          for i in range(3):
+              try:
+                  t = time.time(); r = urllib.request.urlopen(req, timeout=20); break
+              except Exception as e:
+                  print("재시도", i + 1, e); time.sleep(5)
+          else:
+              raise SystemExit("::error::도보 경로 서버에 연결하지 못했습니다")
+          cors = r.headers.get("Access-Control-Allow-Origin")
+          d = json.load(r)
+          dist = d["distances"][0]
+          def hav(a, b):
+              R = 6371000; la1, la2 = math.radians(a[1]), math.radians(b[1])
+              h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin(math.radians(b[0] - a[0]) / 2) ** 2
+              return 2 * R * math.asin(math.sqrt(h))
+          straight = hav(start, dest)
+          ok = sum(1 for v in dist[1:] if v is not None)
+          print(f"응답 {time.time()-t:.1f}초 · code={d['code']} · CORS={cors} · 90곳 중 {ok}곳 거리 있음")
+          print(f"도청→우진해장국: 직선 {straight:.0f}m, 도보 경로 {dist[1]:.0f}m (x{dist[1]/straight:.2f}), 도보 {dist[1]/67:.0f}분")
+          assert d["code"] == "Ok"
+          assert cors in ("*", O), "브라우저에서 호출할 수 있게 CORS 허용이 필요합니다"
+          assert ok >= 80, "대부분의 지점에 거리가 있어야 합니다"
+          assert straight <= dist[1] <= straight * 2.5, "도보 경로 거리가 비정상입니다"
+          PY3
