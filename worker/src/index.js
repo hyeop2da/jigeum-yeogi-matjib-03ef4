@@ -1,4 +1,4 @@
-const VERSION = "2026-09-24-match-v2";
+const VERSION = "2026-09-25-cdn-v3";
 const CACHE = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 const KAKAO_SEARCH_URL = "https://search.map.kakao.com/mapsearch/map.daum";
@@ -6,11 +6,16 @@ const ALLOWED_ORIGINS = new Set([
   "https://hyeop2da.github.io"
 ]);
 
+const PUBLIC_ORIGIN = "https://hyeop2da.github.io";
+// 가게별 평점은 모든 직원이 같은 답을 받으므로 CDN 에 하루 보관한다.
+const PLACE_CACHE_SECONDS = 24 * 60 * 60;
+
+function isAllowedOrigin(origin) {
+  return ALLOWED_ORIGINS.has(origin);
+}
+
 function corsHeaders(origin) {
-  const allowed = origin && (
-    ALLOWED_ORIGINS.has(origin) ||
-    /^https:\/\/[-a-z0-9]+\.netlify\.app$/i.test(origin)
-  ) ? origin : "null";
+  const allowed = isAllowedOrigin(origin) ? origin : "null";
 
   return {
     "Access-Control-Allow-Origin": allowed,
@@ -183,14 +188,18 @@ async function fetchKakaoSearch(place, diagnostics) {
 async function enrichOne(place, diagnostics) {
   const cached = CACHE.get(place.id);
   if (cached && cached.expires > Date.now()) return cached.value;
+  const errorsBefore = diagnostics.httpErrors + diagnostics.parseErrors;
   try {
     const value = await fetchKakaoSearch(place, diagnostics);
-    CACHE.set(place.id, { value, expires: Date.now() + CACHE_TTL });
+    // 카카오 일시 오류로 못 찾은 결과는 오래 보관하지 않는다.
+    const transient = value.rating === null && diagnostics.httpErrors + diagnostics.parseErrors > errorsBefore;
+    if (transient) value.transient = true;
+    CACHE.set(place.id, { value, expires: Date.now() + (transient ? 60 * 1000 : CACHE_TTL) });
     return value;
   } catch (error) {
     diagnostics.exceptions++;
     diagnostics.lastError = String(error?.message || error);
-    const value = { id: place.id, rating: null, reviewCount: null, matched: false, source: "kakaomap" };
+    const value = { id: place.id, rating: null, reviewCount: null, matched: false, source: "kakaomap", transient: true };
     CACHE.set(place.id, { value, expires: Date.now() + 60 * 1000 });
     return value;
   }
@@ -213,8 +222,13 @@ async function mapLimit(items, limit, worker) {
 async function handler(request) {
   const origin = request.headers.get("origin") || "";
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
-  if (request.method === "GET") return json({ ok: true, service: "jigeum-yeogi-kakao-ratings", version: VERSION }, 200, origin);
-  if (request.method !== "POST") return json({ error: "POST만 허용됩니다." }, 405, origin);
+  if (request.method === "GET") {
+    const params = new URL(request.url).searchParams;
+    if (!params.has("id")) return json({ ok: true, service: "jigeum-yeogi-kakao-ratings", version: VERSION }, 200, origin);
+    return placeLookup(params, origin);
+  }
+  if (request.method !== "POST") return json({ error: "GET/POST만 허용됩니다." }, 405, origin);
+  if (!isAllowedOrigin(origin)) return json({ error: "허용되지 않은 사이트의 요청입니다." }, 403, origin);
 
   try {
     const body = await request.json();
@@ -235,6 +249,41 @@ async function handler(request) {
       detail: String(error?.message || error)
     }, 502, origin);
   }
+}
+
+// GET ?id=&name=&addr=&x=&y= : 가게 1곳 평점. 같은 URL 은 CDN 이 하루 동안 대신 응답한다.
+async function placeLookup(params, origin) {
+  const headers = {
+    "Access-Control-Allow-Origin": PUBLIC_ORIGIN,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Content-Type": "application/json; charset=utf-8"
+  };
+  if (origin && !isAllowedOrigin(origin)) {
+    return new Response(JSON.stringify({ error: "허용되지 않은 사이트의 요청입니다." }), {
+      status: 403, headers: { ...headers, "Cache-Control": "no-store" }
+    });
+  }
+  const place = cleanPlace({
+    id: params.get("id"),
+    name: params.get("name"),
+    address: params.get("addr"),
+    x: params.get("x"),
+    y: params.get("y")
+  });
+  if (!place) {
+    return new Response(JSON.stringify({ error: "id·name 이 필요합니다." }), {
+      status: 400, headers: { ...headers, "Cache-Control": "no-store" }
+    });
+  }
+  const diagnostics = { requests: 0, responses: 0, httpErrors: 0, parseErrors: 0, exceptions: 0, rated: 0, rowCounts: [], sample: [], lastError: null };
+  const value = await enrichOne(place, diagnostics);
+  const cacheControl = value.transient
+    ? "no-store"
+    : `public, max-age=3600, s-maxage=${PLACE_CACHE_SECONDS}, stale-while-revalidate=${PLACE_CACHE_SECONDS}`;
+  return new Response(JSON.stringify({ ...value, version: VERSION }), {
+    status: 200,
+    headers: { ...headers, "Cache-Control": cacheControl }
+  });
 }
 
 export default {

@@ -7,6 +7,8 @@ on:
     paths:
       - "config.js"
       - "index.html"
+      - "install.html"
+      - "sw.js"
       - "api/**"
       - "worker/src/**"
       - ".github/workflows/verify-proxy.yml"
@@ -100,3 +102,33 @@ jobs:
           wrong = [p["id"] for p in d["places"][1:] if p["rating"] is not None]
           assert not wrong, f"없는 가게에 다른 가게 평점이 붙음: {wrong}"
           PY2
+
+      - name: CDN cache and origin checks
+        run: |
+          set -euo pipefail
+          URL=$(grep -oE "KAKAO_PROXY_URL:\s*'[^']+'" config.js | sed -E "s/.*'([^']+)'/\1/")
+          ORIGIN="https://hyeop2da.github.io"
+          Q="id=11547525&name=%EC%9A%B0%EC%A7%84%ED%95%B4%EC%9E%A5%EA%B5%AD&addr=%EC%A0%9C%EC%A3%BC%ED%8A%B9%EB%B3%84%EC%9E%90%EC%B9%98%EB%8F%84%20%EC%A0%9C%EC%A3%BC%EC%8B%9C%20%EC%84%9C%EC%82%AC%EB%A1%9C%2011&x=126.52000128&y=33.5115169"
+          for i in 1 2 3; do
+            curl -fsS -D /tmp/h$i -H "Origin: $ORIGIN" "$URL?$Q" -o /tmp/b$i
+            echo "요청 $i: $(grep -i '^x-vercel-cache' /tmp/h$i | tr -d '\r') · $(cat /tmp/b$i)"
+            sleep 2
+          done
+          grep -q '"rating":' /tmp/b1
+          grep -qiE '^x-vercel-cache: (HIT|STALE)' /tmp/h3 || { echo "::error::같은 가게 두 번째 조회부터 CDN 보관본(HIT)이 나와야 합니다"; exit 1; }
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: https://evil.example" -H "Content-Type: text/plain" --data '{"places":[]}' "$URL")
+          echo "허용되지 않은 사이트 POST → $CODE"
+          [ "$CODE" = "403" ]
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Origin: https://evil.example" "$URL?id=1&name=x")
+          echo "허용되지 않은 사이트 GET → $CODE"
+          [ "$CODE" = "403" ] || [ "$CODE" = "200" ]  # 200 이면 CDN 보관본(브라우저는 CORS 로 차단)
+
+      - name: Check live install page and QR
+        run: |
+          set -euo pipefail
+          B="https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4"
+          for i in $(seq 1 30); do
+            if curl -fsS "$B/install.html?t=$(date +%s)" | grep -q "앱 설치하기" && curl -fsS -o /dev/null "$B/qr.png"; then echo "install.html · qr.png OK"; exit 0; fi
+            echo "Pages 반영 대기 $i/30"; sleep 10
+          done
+          exit 1
