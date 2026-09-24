@@ -86,7 +86,8 @@ jobs:
           import json, sys, urllib.request, time
           url = sys.argv[1]
           base = {"id":"11547525","place_name":"우진해장국","road_address_name":"제주특별자치도 제주시 서사로 11","x":"126.52000128","y":"33.5115169"}
-          places = [dict(base, id=str(11547525 + (0 if i == 0 else 900000000 + i)), place_name=base["place_name"] if i == 0 else f"없는가게{i}") for i in range(20)]
+          salt = int(time.time()) % 1000000 * 100  # 실행마다 새 ID → 서버 캐시 영향 제거
+          places = [base] + [dict(base, id=str(8000000000 + salt + i), place_name=f"없는가게{i}") for i in range(1, 20)]
           req = urllib.request.Request(url, data=json.dumps({"places": places}).encode(), headers={"Content-Type": "text/plain;charset=UTF-8", "Origin": "https://hyeop2da.github.io"})
           t = time.time()
           d = json.load(urllib.request.urlopen(req, timeout=30))
