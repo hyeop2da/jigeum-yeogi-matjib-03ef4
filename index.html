@@ -139,7 +139,7 @@
   const MIN_RATING=3.7;
   const MAX_SHOW=30;
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
-  const state={meal:'lunch',lat:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
+  const state={meal:'lunch',lat:null,startName:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
   const radiusOpts=[['도보 5분',400],['도보 10분',800],['도보 15분',1200],['2km',2000],['3km',3000],['5km',5000]];
   const WEEKDAYS=['일','월','화','수','목','금','토'];
 
@@ -231,12 +231,15 @@
 
   // ── 카카오맵 열기: 안드로이드는 앱(없으면 웹 자동 전환), 아이폰은 처음 한 번 물어보고 기억 ──
   const KAKAO_PREF_KEY='jy-kakao-open';
+  // 사용자가 직접 정한 위치(주소 검색·지도 선택·기본 위치)는 출발지로 넘기고, 내 위치(GPS)면 카카오맵이 실시간 현재 위치를 쓴다
+  function linkName(t){return String(t||'').replace(/[,/]/g,' ').trim()||'위치'}
   function kakaoWebUrl(kind,p){
+    if(kind==='route'&&p.y&&p.x&&state.startName&&state.lat!=null) return 'https://map.kakao.com/link/by/walk/'+encodeURIComponent(linkName(state.startName))+','+state.lat+','+state.lng+'/'+encodeURIComponent(linkName(p.place_name))+','+p.y+','+p.x;
     if(kind==='route'&&p.y&&p.x) return 'https://map.kakao.com/link/to/'+encodeURIComponent(p.place_name||'목적지')+','+p.y+','+p.x;
     return 'https://place.map.kakao.com/'+encodeURIComponent(p.id);
   }
   function kakaoAppPath(kind,p){
-    // 출발지(sp)는 비워 두어 카카오맵 앱이 실제 현재 위치를 쓰게 한다
+    if(kind==='route'&&p.y&&p.x&&state.startName&&state.lat!=null) return 'route?sp='+state.lat+','+state.lng+'&ep='+p.y+','+p.x+'&by=FOOT';
     if(kind==='route'&&p.y&&p.x) return 'route?ep='+p.y+','+p.x+'&by=FOOT';
     return 'place?id='+encodeURIComponent(p.id);
   }
@@ -498,7 +501,7 @@
       state.geocoder=new kakao.maps.services.Geocoder();
       kakao.maps.event.addListener(state.map,'click',function(mouseEvent){
         const p=mouseEvent.latLng;
-        state.lat=p.getLat(); state.lng=p.getLng();
+        state.lat=p.getLat(); state.lng=p.getLng(); state.startName='지도에서 선택한 위치';
         $('locState').textContent='지도에서 선택한 위치';
         drawUser(); onLocationChanged();
       });
@@ -661,23 +664,23 @@
 
   // ── 위치 ──
   function onLocationChanged(){state.autoExpanded=false;loadWeather();search();}
-  function setSearchCenter(lat,lng,label){
-    state.lat=Number(lat); state.lng=Number(lng);
+  function setSearchCenter(lat,lng,label,startName){
+    state.lat=Number(lat); state.lng=Number(lng); state.startName=startName||null;
     $('locState').textContent=label||'검색 위치 설정 완료';
     ensureMap();
     if(state.map){drawUser();onLocationChanged();}
     else loadWeather();
   }
-  function useDefaultLocation(reason){setSearchCenter(DEFAULT_LOCATION.lat,DEFAULT_LOCATION.lng,'📍 '+DEFAULT_LOCATION.label+' 기준'+(reason?' · '+reason:''));}
+  function useDefaultLocation(reason){setSearchCenter(DEFAULT_LOCATION.lat,DEFAULT_LOCATION.lng,'📍 '+DEFAULT_LOCATION.label+' 기준'+(reason?' · '+reason:''),DEFAULT_LOCATION.label);}
   function locationResultCallback(data,status){
     if(status===kakao.maps.services.Status.OK && data && data.length){
-      setSearchCenter(data[0].y,data[0].x,(data[0].place_name||'검색 위치')+' 기준');
+      setSearchCenter(data[0].y,data[0].x,(data[0].place_name||'검색 위치')+' 기준',data[0].place_name||'검색 위치');
       $('locationQuery').value=data[0].place_name||$('locationQuery').value;
       return;
     }
     state.geocoder.addressSearch($('locationQuery').value.trim(),function(result,addressStatus){
       if(addressStatus===kakao.maps.services.Status.OK && result && result.length){
-        setSearchCenter(result[0].y,result[0].x,(result[0].address_name||'검색 위치')+' 기준');
+        setSearchCenter(result[0].y,result[0].x,(result[0].address_name||'검색 위치')+' 기준',result[0].address_name||'검색 위치');
         return;
       }
       notice('입력한 지역을 찾지 못했습니다. 예: 제주도청, 노형동, 도로명주소');
