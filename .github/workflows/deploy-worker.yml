@@ -1,12 +1,8 @@
 name: Deploy Kakao Ratings Worker
 
+# 현재 운영 중계 서버는 Vercel(api/kakao-ratings.js)이다.
+# Cloudflare 토큰 발급이 가능해지면 수동 실행(workflow_dispatch)으로만 배포한다.
 on:
-  push:
-    branches:
-      - gh-pages
-    paths:
-      - "worker/**"
-      - ".github/workflows/deploy-worker.yml"
   workflow_dispatch:
 
 permissions:

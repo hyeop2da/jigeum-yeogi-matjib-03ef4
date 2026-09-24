@@ -1,0 +1,66 @@
+name: Verify Kakao Ratings Proxy
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - "config.js"
+      - "api/**"
+      - "worker/src/**"
+      - ".github/workflows/verify-proxy.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Smoke test proxy from config.js
+        run: |
+          set -euo pipefail
+          URL=$(grep -oE "KAKAO_PROXY_URL:\s*'[^']+'" config.js | sed -E "s/.*'([^']+)'/\1/")
+          ORIGIN="https://hyeop2da.github.io"
+          echo "Proxy URL: $URL"
+
+          # Vercel 배포가 끝날 때까지 최대 약 5분 대기
+          ok=""
+          for i in $(seq 1 30); do
+            if curl -fsS -H "Origin: $ORIGIN" "$URL" -o /tmp/get.json && grep -q '"ok":true' /tmp/get.json; then ok=1; break; fi
+            echo "GET 재시도 $i/30"; sleep 10
+          done
+          [ -n "$ok" ] || { echo "::error::GET 헬스체크 실패"; cat /tmp/get.json 2>/dev/null || true; exit 1; }
+          echo "GET: $(cat /tmp/get.json)"
+
+          curl -fsS -o /dev/null -D /tmp/options.h -X OPTIONS \
+            -H "Origin: $ORIGIN" -H "Access-Control-Request-Method: POST" "$URL"
+          grep -qi "access-control-allow-origin: $ORIGIN" /tmp/options.h
+          echo "OPTIONS: CORS OK"
+
+          curl -fsS -X POST -H "Origin: $ORIGIN" -H "Content-Type: text/plain;charset=UTF-8" \
+            --data '{"places":[{"id":"11547525","place_name":"우진해장국","road_address_name":"제주특별자치도 제주시 서사로 11","x":"126.52000128","y":"33.5115169"}]}' \
+            "$URL" -o /tmp/post.json
+          echo "POST: $(cat /tmp/post.json)"
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open("/tmp/post.json"))
+          p = (d.get("places") or [{}])[0]
+          if p.get("rating") is None:
+              print("::error::우진해장국 평점이 null 입니다.")
+              sys.exit(1)
+          print(f"우진해장국 rating={p['rating']} reviewCount={p.get('reviewCount')}")
+          PY
+
+      - name: Check live GitHub Pages config.js
+        run: |
+          set -euo pipefail
+          WANT=$(grep -oE "KAKAO_PROXY_URL:\s*'[^']+'" config.js)
+          for i in $(seq 1 30); do
+            LIVE=$(curl -fsS "https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/config.js?t=$(date +%s)" | grep -oE "KAKAO_PROXY_URL:\s*'[^']+'" || true)
+            if [ "$LIVE" = "$WANT" ]; then echo "Live config.js OK: $LIVE"; exit 0; fi
+            echo "Pages 반영 대기 $i/30 (현재: $LIVE)"; sleep 10
+          done
+          echo "::error::GitHub Pages 의 config.js 가 아직 새 주소가 아닙니다."
+          exit 1
