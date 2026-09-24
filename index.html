@@ -137,6 +137,7 @@
 (function(){
   const CONFIG=window.APP_CONFIG||{KAKAO_JS_KEY:''};
   const MIN_RATING=3.7;
+  const MAX_SHOW=30;
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
   const state={lat:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
   const radiusOpts=[['도보 5분',400],['도보 10분',800],['도보 15분',1200],['2km',2000],['3km',3000],['5km',5000]];
@@ -391,7 +392,7 @@
   }
   function renderList(){
     const list=$('list');
-    const top=state.ranked.slice(0,12);
+    const top=state.ranked.slice(0,MAX_SHOW);
     if(!top.length){
       list.innerHTML='<div class="empty">'+(state.ratingsDown?'주변 가게를 찾지 못했습니다.':'⭐ 평점 '+MIN_RATING+' 이상인 '+FOOD[state.food].label.split(' ')[1]+' 가게를 찾지 못했습니다.')+'<br>걷는 거리를 늘리거나 다른 종류를 골라 보세요.</div>';
       $('summary').textContent='조건에 맞는 후보 0곳';
@@ -462,7 +463,7 @@
   function drawMarkers(){
     if(!state.map) return;
     state.markers.forEach(m=>m.setMap(null)); state.markers=[];
-    state.ranked.slice(0,12).forEach((p,i)=>{
+    state.ranked.slice(0,MAX_SHOW).forEach((p,i)=>{
       const marker=new kakao.maps.Marker({map:state.map,position:new kakao.maps.LatLng(p.y,p.x),title:p.place_name});
       state.markers.push(marker);
       kakao.maps.event.addListener(marker,'click',()=>{state.pickIdx=i;renderPick();focusCard(i);});
@@ -493,10 +494,10 @@
     return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   }
   // 카카오 장소 검색을 최대 3페이지(45곳)까지 모은다.
-  function searchPages(query,opts){
+  function searchPages(query,opts,method){
     return new Promise(resolve=>{
       const rows=[];
-      state.ps.keywordSearch(query,function(data,status,pg){
+      state.ps[method||'keywordSearch'](query,function(data,status,pg){
         if(status===kakao.maps.services.Status.OK){
           rows.push(...data);
           if(pg&&pg.hasNextPage&&pg.current<3){pg.nextPage();return;}
@@ -553,6 +554,11 @@
       if(drink&&drink.query!=='술집'&&res.status!==kakao.maps.services.Status.ERROR){
         const more=await searchPages('술집',opts);
         if(more.status==='OK') res={status:'OK',rows:res.rows.concat(more.rows)};
+      }
+      // 카카오 검색은 한 번에 최대 45곳이라, 종류 칩 검색은 업종 검색 결과도 합쳐 후보를 늘린다
+      if(!q&&res.status!==kakao.maps.services.Status.ERROR){
+        const cat=await searchPages(state.food==='cafe'?'CE7':'FD6',opts,'categorySearch');
+        if(cat.status==='OK') res={status:'OK',rows:res.rows.concat(cat.rows)};
       }
       if(res.status!=='OK'&&res.status!==kakao.maps.services.Status.ZERO_RESULT){
         notice(navigator.onLine===false?'인터넷 연결을 확인해 주세요.':'카카오 장소 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -670,7 +676,7 @@
   $('week').onclick=()=>setHistoryOpen(true);
   $('nextBtn').onclick=()=>{
     if(!state.ranked.length) return;
-    state.pickIdx=(state.pickIdx+1)%Math.min(state.ranked.length,12);
+    state.pickIdx=(state.pickIdx+1)%Math.min(state.ranked.length,MAX_SHOW);
     renderPick(); focusCard(state.pickIdx);
   };
   $('luckyBtn').onclick=()=>{
