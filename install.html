@@ -37,17 +37,25 @@
     <p class="small">버튼이 안 되면 오른쪽 아래 <kbd>⋮</kbd> 또는 <kbd>공유</kbd> → "다른 브라우저로 열기"를 누르세요.</p>
   </div>
 
-  <div class="card hide" id="android">
-    <h2>🤖 안드로이드</h2>
+  <div id="guides">
+  <div class="card" id="android">
+    <h2>🤖 갤럭시 · 안드로이드</h2>
     <button class="btn primary hide" id="installBtn">📲 앱 설치하기</button>
-    <ol id="androidSteps">
-      <li><b>크롬</b>: 오른쪽 위 <kbd>⋮</kbd> → <b>"앱 설치"</b> 또는 <b>"홈 화면에 추가"</b></li>
-      <li><b>삼성 인터넷</b>: 아래 <kbd>≡</kbd> → <b>"현재 페이지 추가"</b> → <b>"홈 화면"</b></li>
-      <li>홈 화면에 생긴 🍜 아이콘으로 실행하세요.</li>
+    <p class="small" id="installHint" style="margin:0 0 6px">사용하는 브라우저에 맞춰 아래처럼 설치하세요.</p>
+    <b>삼성 인터넷</b> (갤럭시 기본 브라우저)
+    <ol>
+      <li>화면 아래 <kbd>≡</kbd> 메뉴를 누르세요.</li>
+      <li><b>"현재 페이지 추가"</b> → <b>"홈 화면"</b> → <b>"추가"</b></li>
     </ol>
+    <b>크롬</b>
+    <ol>
+      <li>오른쪽 위 <kbd>⋮</kbd> 메뉴를 누르세요.</li>
+      <li><b>"앱 설치"</b> 또는 <b>"홈 화면에 추가"</b> → <b>"설치"</b></li>
+    </ol>
+    <p class="small" style="margin:8px 0 0">홈 화면에 생긴 🍜 아이콘으로 실행하세요.</p>
   </div>
 
-  <div class="card hide" id="ios">
+  <div class="card" id="ios">
     <h2>🍎 아이폰</h2>
     <ol>
       <li>반드시 <b>사파리(Safari)</b>로 여세요.</li>
@@ -55,6 +63,7 @@
       <li>목록을 내려 <b>"홈 화면에 추가"</b> → 오른쪽 위 <b>"추가"</b></li>
       <li>홈 화면에 생긴 🍜 아이콘으로 실행하세요.</li>
     </ol>
+  </div>
   </div>
 
   <div class="card hide" id="desktop">
@@ -84,14 +93,14 @@
   const inKakao=/KAKAOTALK/i.test(ua);
   if(standalone) $('installed').classList.remove('hide');
   if(inKakao) $('kakao').classList.remove('hide');
-  if(isIOS) $('ios').classList.remove('hide');
-  else if(isAndroid) $('android').classList.remove('hide');
-  else $('desktop').classList.remove('hide');
+  // 갤럭시·아이폰 안내를 모두 보여 주고, 지금 쓰는 기기 안내를 먼저 둔다
+  if(isIOS) $('guides').insertBefore($('ios'),$('android'));
+  if(!isIOS&&!isAndroid) $('desktop').classList.remove('hide');
   $('openExternal').onclick=()=>{location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(location.href);};
   let deferred=null;
   window.addEventListener('beforeinstallprompt',e=>{
     e.preventDefault(); deferred=e;
-    $('android').classList.remove('hide'); $('installBtn').classList.remove('hide');
+    $('installBtn').classList.remove('hide'); $('installHint').textContent='버튼 한 번이면 설치돼요. 안 되면 아래 방법을 따라 하세요.';
   });
   $('installBtn').onclick=async()=>{if(!deferred)return;deferred.prompt();deferred=null;$('installBtn').classList.add('hide');};
   window.addEventListener('appinstalled',()=>{$('installed').classList.remove('hide');$('installed').textContent='✅ 설치 완료! 홈 화면의 🍜 아이콘으로 여세요.';});

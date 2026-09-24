@@ -19,7 +19,7 @@
     .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:#fff;display:grid;place-items:center;font-size:24px;box-shadow:0 6px 18px rgba(0,0,0,.15)}
     h1{margin:0;font-size:23px;letter-spacing:-.5px}.sub{margin:6px 0 0;color:#d1d5db;font-size:13px}
     .hero{margin-top:16px;display:grid;gap:10px}.search{display:flex;background:#fff;border-radius:16px;padding:6px;box-shadow:var(--shadow)}.search input{flex:1;border:0;outline:0;padding:12px;color:var(--text);min-width:0}.search button{border:0;border-radius:12px;background:var(--accent);color:#fff;padding:0 16px;font-weight:700}
-    .locationbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.locbtn{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;padding:9px 12px;border-radius:12px;cursor:pointer}.locsearch{flex:1;min-width:180px;max-width:420px;border:1px solid rgba(255,255,255,.2);background:#fff;color:var(--text);padding:9px 12px;border-radius:12px;outline:0}.locstate{font-size:13px;color:#e5e7eb}
+    .locationbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.locbtn{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;padding:9px 12px;border-radius:12px;cursor:pointer}.locsearch{flex:1;min-width:180px;max-width:420px;border:1px solid rgba(255,255,255,.2);background:#fff;color:var(--text);padding:9px 12px;border-radius:12px;outline:0}.locstate{flex:1;min-width:0;font-size:13px;color:#e5e7eb}.search.loc{padding:4px}.search.loc input{padding:9px 12px}.search.loc button{background:#374151;font-size:14px}
     .content{padding:16px 18px 34px}.notice{display:none;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;margin-bottom:12px;font-size:13px}.notice.show{display:block}
     .guide{display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:16px;padding:14px;margin-bottom:12px;font-size:13px;line-height:1.6;color:#1e3a8a}.guide.show{display:block}.guide b{color:#1e40af}.guide ol{margin:6px 0 8px;padding-left:20px}.guide .row2{display:flex;gap:8px;flex-wrap:wrap}.guide button,.guide a{border:0;border-radius:10px;padding:8px 12px;font-weight:800;cursor:pointer;text-decoration:none;font-size:13px}.guide .ok{background:#1e40af;color:#fff}.guide .ghost{background:#fff;color:#1e40af;border:1px solid #bfdbfe}
     .toolbar{display:grid;gap:10px;margin-bottom:14px}.step{font-size:12px;font-weight:800;color:#374151;margin:2px 0 -4px}
@@ -49,13 +49,14 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-compact-v4">
+<body data-app-version="2026-09-25-layout-v5">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><div><h1>지금 여기 맛집</h1><p class="sub">메뉴 고민 30초 컷 · 누구랑·무엇을 고르면 <b>딱 한 곳</b>을 골라드려요.</p></div></div>
     <div class="hero">
       <div class="search"><input id="query" placeholder="예: 고기국수, 돈까스" autocomplete="off" enterkeyhint="search" /><button id="searchBtn">찾기</button></div>
-      <div class="locationbar"><button class="locbtn" id="locBtn">📍 내 위치</button><input id="locationQuery" class="locsearch" placeholder="지역·주소" autocomplete="off" enterkeyhint="search" /><button class="locbtn" id="locationSearchBtn">이 위치 찾기</button><span class="locstate" id="locState">위치를 준비하는 중…</span></div>
+      <div class="search loc"><input id="locationQuery" placeholder="지역·주소" autocomplete="off" enterkeyhint="search" /><button id="locationSearchBtn">위치 찾기</button></div>
+      <div class="locationbar"><button class="locbtn" id="locBtn">📍 내 위치</button><span class="locstate" id="locState">위치를 준비하는 중…</span></div>
     </div>
   </header>
 
@@ -623,7 +624,7 @@
       const st=navigator.permissions&&await navigator.permissions.query({name:'geolocation'});
       if(st&&st.state==='granted'){getLocation(true);return;}
     }catch(e){}
-    useDefaultLocation('내 위치 버튼으로 변경');
+    useDefaultLocation();
   }
 
   // ── 결정 버튼들 ──
