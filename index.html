@@ -30,7 +30,7 @@
     .pick-label{font-size:12px;font-weight:800;color:#c2410c}.pick-name{font-size:26px;font-weight:900;letter-spacing:-.6px;margin:6px 0 2px}.pick-menu{font-size:13px;color:var(--muted)}
     .pick-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.b{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:5px 8px;font-size:12px;font-weight:700;background:#f3f4f6;color:#374151}.b.gold{background:#fef3c7;color:#92400e}.b.green{background:#dcfce7;color:#166534}.b.blue{background:#dbeafe;color:#1e40af}.b.red{background:#fee2e2;color:#b91c1c}
     .why{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:5px;font-size:14px}.why li{background:#fff;border:1px solid #fde2c8;border-radius:10px;padding:8px 10px}.why li.minus{color:#9ca3af}
-    .pick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.btn{border:0;border-radius:12px;padding:12px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;font-size:14px;display:block}.btn.main{background:#111827;color:#fff;grid-column:1/-1}.btn.sub{background:#fff;color:#374151;border:1px solid var(--line)}.btn.wide{grid-column:1/-1}.btn.kakao{white-space:nowrap;padding:12px 4px;font-size:clamp(11.5px,3.5vw,14px);letter-spacing:-.3px}
+    .pick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.btn{border:0;border-radius:12px;padding:12px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;font-size:14px;display:block}.btn.main{background:#111827;color:#fff;grid-column:1/-1}.btn.sub{background:#fff;color:#374151;border:1px solid var(--line)}.btn.wide{grid-column:1/-1}.btn[hidden]{display:none}.btn.kakao{white-space:nowrap;padding:12px 4px;font-size:clamp(11.5px,3.5vw,14px);letter-spacing:-.3px}
     .ethics{margin-top:10px;font-size:12px;color:var(--warn);background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;display:none}.ethics.show{display:block}
     .layout{display:grid;grid-template-columns:1fr 1.15fr;gap:14px}.mapwrap,.listwrap,.history{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
     #map{height:560px;background:#e5e7eb}.list{max-height:560px;overflow:auto}.list-head{padding:12px 15px;font-size:13px;font-weight:800;border-bottom:1px solid var(--line);background:#fafafa}.empty{padding:35px 20px;text-align:center;color:var(--muted)}
@@ -63,7 +63,7 @@
   <main class="content">
     <div class="notice" id="notice"></div>
     <section class="history" id="history">
-      <div class="hhead"><b id="histTitle">📅 이번 주 점심</b><button id="histToggle" aria-expanded="false">펼치기 ▾</button></div>
+      <div class="hhead"><b>📅 이번 주 점심</b><button id="histToggle" aria-expanded="false">펼치기 ▾</button></div>
       <div class="week" id="week"></div>
       <ul class="hlist" id="hlist" hidden></ul>
     </section>
@@ -79,7 +79,7 @@
     <section class="toolbar">
       <div class="step">① 누구랑 먹나요?</div>
       <div class="chips" id="situationChips"></div>
-      <div class="step">② 오늘 당기는 건?</div>
+      <div class="step" id="foodStep">② 오늘 당기는 건?</div>
       <div class="chips" id="foodChips"></div>
       <div class="step">③ 얼마나 걸을까요?</div>
       <div class="chips" id="radiusChips"></div>
@@ -147,13 +147,13 @@
   const FOODS_LUNCH=[
     ['all','🍽️ 전체','음식점',p=>isRestaurant(p)],
     ['korean','🍚 한식','한식',p=>/한식/.test(p.category_name)],
+    ['soup','🍜 국밥·국수','국밥',p=>/국밥|국수|해장국|설렁탕|곰탕|순대국|칼국수|냉면|국수/.test(textOf(p))],
     ['chinese','🥟 중식','중식',p=>/중식|중국/.test(p.category_name)],
     ['japanese','🍣 일식','일식',p=>/일식|일본|초밥|돈까스|돈가스|라멘|우동/.test(p.category_name)],
     ['western','🍝 양식','양식',p=>/양식|이탈리|파스타|피자|스테이크|햄버거|패밀리레스토랑|멕시|프랑스|브런치/.test(p.category_name)],
     ['snack','🍢 분식','분식',p=>/분식|떡볶이|김밥/.test(p.category_name)],
     ['meat','🥩 고기','고기',p=>/육류|고기|구이|곱창|막창|갈비|삼겹|돼지|소고기/.test(p.category_name)],
     ['cafe','☕ 카페','카페',p=>isCafe(p)],
-    ['bar','🍺 술집','술집',p=>isBar(p)]
   ];
   // 저녁은 '1차'로 갈 만한 곳 위주
   const FOODS_DINNER=[
@@ -278,9 +278,9 @@
 
   // ── 점심 기록 (이 기기에만 저장) ──
   const HISTORY_KEY='jy-lunch-history-v1';
-  function loadHistory(){const v=store(HISTORY_KEY,[]);return Array.isArray(v)?v.filter(h=>h&&h.id&&h.ts):[]}
+  // 저녁은 기록하지 않는다 (예전에 저장된 저녁 기록은 무시)
+  function loadHistory(){const v=store(HISTORY_KEY,[]);return Array.isArray(v)?v.filter(h=>h&&h.id&&h.ts&&h.meal!=='dinner'):[]}
   function saveHistory(list){save(HISTORY_KEY,list.sort((a,b)=>b.ts-a.ts).slice(0,60))}
-  function mealOf(h){return h.meal||'lunch'}
   function lastVisit(id,days){return loadHistory().find(h=>String(h.id)===String(id)&&daysBetween(h.ts)<days)}
   function setHistoryOpen(open){
     $('hlist').hidden=!open;
@@ -288,8 +288,7 @@
     $('histToggle').setAttribute('aria-expanded',String(open));
   }
   function renderHistory(){
-    const hist=loadHistory().filter(h=>mealOf(h)===state.meal);
-    $('histTitle').textContent='📅 이번 주 '+MEAL_LABEL[state.meal];
+    const hist=loadHistory();
     const now=new Date(); const monday=startOfDay(now)-((now.getDay()+6)%7)*86400000;
     let week='';
     for(let i=0;i<5;i++){
@@ -303,7 +302,7 @@
     $('hlist').innerHTML=hist.length?hist.slice(0,30).map(h=>
       '<li><span class="hd">'+fmtDate(h.ts)+'</span><span class="hn">'+escapeHtml(h.name)+' · '+escapeHtml(h.menu||'')+'</span>'+
       '<button data-hplace="'+escapeHtml(h.id)+'" title="카카오맵에서 보기">🗺️</button>'+
-      '<button data-del="'+h.ts+'" title="기록 삭제">✕</button></li>').join(''):'<li class="hempty">아직 '+MEAL_LABEL[state.meal]+' 기록이 없어요. 추천 카드에서 "✅ 여기로 결정"을 누르면 날짜·요일별로 쌓여요.</li>';
+      '<button data-del="'+h.ts+'" title="기록 삭제">✕</button></li>').join(''):'<li class="hempty">아직 기록이 없어요. 추천 카드에서 "✅ 여기로 결정"을 누르면 날짜·요일별로 쌓여요.</li>';
     document.querySelectorAll('[data-hplace]').forEach(b=>b.onclick=()=>openKakao('place',{id:b.dataset.hplace}));
     document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
       if(!confirm('이 기록을 지울까요?')) return;
@@ -465,7 +464,8 @@
     if(!FOOD[state.food]) state.food='all';
     if(!SITUATIONS[state.situation]) state.situation=dinner?'company':'team';
     $('query').placeholder=dinner?'예: 흑돼지, 횟집':'예: 고기국수, 돈까스';
-    $('decideBtn').textContent='✅ 여기로 결정! (오늘 '+MEAL_LABEL[meal]+'으로 기록)';
+    $('decideBtn').hidden=dinner;
+    $('foodStep').textContent=dinner?'② 1차 메뉴는?':'② 오늘 당기는 건?';
     renderChips(); renderHistory();
   }
   function rerank(){
@@ -713,11 +713,12 @@
   $('decideBtn').onclick=()=>{
     const p=state.ranked[state.pickIdx]; if(!p) return;
     const hist=loadHistory();
-    if(hist.some(h=>String(h.id)===String(p.id)&&daysBetween(h.ts)===0&&mealOf(h)===state.meal)){toast('오늘 '+MEAL_LABEL[state.meal]+'으로 이미 기록된 곳이에요');return;}
-    hist.unshift({id:String(p.id),name:p.place_name,menu:menuLabel(p),food:foodLabelOf(p),url:placeUrl(p),ts:Date.now(),meal:state.meal});
+    if(state.meal!=='lunch') return;
+    if(hist.some(h=>String(h.id)===String(p.id)&&daysBetween(h.ts)===0)){toast('오늘 이미 기록된 곳이에요');return;}
+    hist.unshift({id:String(p.id),name:p.place_name,menu:menuLabel(p),food:foodLabelOf(p),url:placeUrl(p),ts:Date.now()});
     saveHistory(hist);
     renderHistory(); renderContext();
-    toast('✅ '+fmtDate(Date.now())+' '+MEAL_LABEL[state.meal]+': '+p.place_name+' 기록 완료!');
+    toast('✅ '+fmtDate(Date.now())+' 점심: '+p.place_name+' 기록 완료!');
   };
   $('pickPlaceBtn').onclick=()=>openKakao('place',state.ranked[state.pickIdx]);
   $('pickRouteBtn').onclick=()=>openKakao('route',state.ranked[state.pickIdx]);
@@ -800,8 +801,7 @@
   $('updateBtn').onclick=()=>location.reload();
 
   document.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>{if(b.dataset.meal===state.meal)return;setMeal(b.dataset.meal);$('query').value='';state.autoExpanded=false;search();});
-  const hourNow=new Date().getHours();
-  setMeal(hourNow>=15||hourNow<4?'dinner':'lunch');
+  setMeal('lunch');
   renderContext();
   renderKakaoPref();
   autoStart();
