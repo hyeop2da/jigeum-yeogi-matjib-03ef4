@@ -159,7 +159,7 @@ async function fetchKakaoSearch(place, diagnostics) {
       .filter(x => Number.isFinite(x.distance))
       .sort((a, b) => a.distance - b.distance)[0];
 
-    const match = sameId || sameName || (nearest && nearest.distance < 300 ? nearest.row : null);
+    const match = sameId || sameName || (nearest && nearest.distance < 30 ? nearest.row : null);
 
     if (match) {
       const ratingAverage = numberOrNull(match.rating_average);

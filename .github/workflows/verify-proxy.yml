@@ -92,4 +92,7 @@ jobs:
           d = json.load(urllib.request.urlopen(req, timeout=30))
           print(f"20곳 요청 → 응답 {len(d['places'])}곳, {time.time()-t:.1f}초, rated={d['diagnostics']['rated']}")
           assert len(d["places"]) == 20, "20곳 모두 응답해야 함"
+          assert d["places"][0]["rating"] is not None, "우진해장국 평점이 있어야 함"
+          wrong = [p["id"] for p in d["places"][1:] if p["rating"] is not None]
+          assert not wrong, f"없는 가게에 다른 가게 평점이 붙음: {wrong}"
           PY2
