@@ -148,18 +148,8 @@ async function fetchKakaoSearch(place, diagnostics) {
         return da - db;
       })[0];
 
-    const nearest = rows
-      .map(row => ({
-        row,
-        distance: distanceMeters(place, {
-          x: numberOrNull(row.lon),
-          y: numberOrNull(row.lat)
-        })
-      }))
-      .filter(x => Number.isFinite(x.distance))
-      .sort((a, b) => a.distance - b.distance)[0];
-
-    const match = sameId || sameName || (nearest && nearest.distance < 30 ? nearest.row : null);
+    // 위치만 가까운 다른 가게의 평점을 빌려오지 않도록 ID 또는 이름이 맞을 때만 사용한다.
+    const match = sameId || sameName;
 
     if (match) {
       const ratingAverage = numberOrNull(match.rating_average);
