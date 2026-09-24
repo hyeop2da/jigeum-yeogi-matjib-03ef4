@@ -1,3 +1,4 @@
+const VERSION = "2026-09-24-match-v2";
 const CACHE = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 const KAKAO_SEARCH_URL = "https://search.map.kakao.com/mapsearch/map.daum";
@@ -212,7 +213,7 @@ async function mapLimit(items, limit, worker) {
 async function handler(request) {
   const origin = request.headers.get("origin") || "";
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
-  if (request.method === "GET") return json({ ok: true, service: "jigeum-yeogi-kakao-ratings" }, 200, origin);
+  if (request.method === "GET") return json({ ok: true, service: "jigeum-yeogi-kakao-ratings", version: VERSION }, 200, origin);
   if (request.method !== "POST") return json({ error: "POST만 허용됩니다." }, 405, origin);
 
   try {

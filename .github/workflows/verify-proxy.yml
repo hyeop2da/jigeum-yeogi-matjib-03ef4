@@ -27,9 +27,12 @@ jobs:
           echo "Proxy URL: $URL"
 
           # Vercel 배포가 끝날 때까지 최대 약 5분 대기
+          # 서버가 이 커밋의 코드(VERSION)로 재배포될 때까지 대기
+          WANT_VERSION=$(grep -oE 'const VERSION = "[^"]+"' worker/src/index.js | sed -E 's/.*"([^"]+)"/\1/')
+          echo "Expected proxy version: $WANT_VERSION"
           ok=""
           for i in $(seq 1 30); do
-            if curl -fsS -H "Origin: $ORIGIN" "$URL" -o /tmp/get.json && grep -q '"ok":true' /tmp/get.json; then ok=1; break; fi
+            if curl -fsS -H "Origin: $ORIGIN" "$URL" -o /tmp/get.json && grep -q "\"version\":\"$WANT_VERSION\"" /tmp/get.json; then ok=1; break; fi
             echo "GET 재시도 $i/30"; sleep 10
           done
           [ -n "$ok" ] || { echo "::error::GET 헬스체크 실패"; cat /tmp/get.json 2>/dev/null || true; exit 1; }
