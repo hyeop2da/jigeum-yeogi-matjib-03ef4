@@ -1,4 +1,4 @@
-const CACHE='jigeum-yeogi-matjib-v21';
+const CACHE='jigeum-yeogi-matjib-v22';
 const ASSETS=['./','./index.html','./install.html','./manifest.json','./config.js','./icon-192.png','./icon-512.png','./qr.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
