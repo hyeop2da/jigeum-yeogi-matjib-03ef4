@@ -1,6 +1,6 @@
 const CACHE = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
-const KAKAO_SEARCH_URL = "https://place.map.kakao.com/mapsearch/map.daum";
+const KAKAO_SEARCH_URL = "https://search.map.kakao.com/mapsearch/map.daum";
 const ALLOWED_ORIGINS = new Set([
   "https://hyeop2da.github.io"
 ]);
@@ -13,8 +13,10 @@ function corsHeaders(origin) {
 
   return {
     "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8"
   };
@@ -58,25 +60,8 @@ function distanceMeters(a, b) {
   return 2 * R * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
 }
 
-function collectObjects(value, out = [], depth = 0) {
-  if (depth > 5 || value == null) return out;
-  if (Array.isArray(value)) {
-    for (const item of value) collectObjects(item, out, depth + 1);
-    return out;
-  }
-  if (typeof value === "object") {
-    out.push(value);
-    for (const key of Object.keys(value)) {
-      if (key === "place" || key === "places" || key === "items" || key === "documents" || key === "result" || key === "data") {
-        collectObjects(value[key], out, depth + 1);
-      }
-    }
-  }
-  return out;
-}
-
 function normalizeText(value) {
-  return String(value ?? "").toLowerCase().replace(/\s+/g, "").replace(/[()\\[\\]{}·.,'"`]/g, "");
+  return String(value ?? "").toLowerCase().replace(/\s+/g, "").replace(/[()[\]{}·.,'"`]/g, "");
 }
 
 async function fetchKakaoSearch(place, diagnostics) {
@@ -116,11 +101,9 @@ async function fetchKakaoSearch(place, diagnostics) {
       diagnostics.lastError = `JSON parse failed: ${String(error?.message || error)}; body=${text.slice(0, 160)}`;
       continue;
     }
-    const rows = collectObjects(data).filter(row =>
-      row && (
-        row.confirmid != null || row.id != null || row.place_id != null || row.placeId != null ||
-        row.name != null || row.place_name != null
-      )
+    // 카카오 응답의 x/y 는 WCONGNAMUL 좌표이므로 거리 계산에는 lon/lat 만 사용한다.
+    const rows = (Array.isArray(data?.place) ? data.place : []).filter(row =>
+      row && typeof row === "object" && (row.confirmid != null || row.name != null)
     );
 
     diagnostics.responses++;
@@ -129,37 +112,38 @@ async function fetchKakaoSearch(place, diagnostics) {
       diagnostics.sample.push({
         query: q,
         first: rows.slice(0, 3).map(row => ({
-          id: row.confirmid ?? row.id ?? row.place_id ?? row.placeId ?? null,
-          name: row.name ?? row.place_name ?? null,
-          rating: row.rating_average ?? row.ratingAverage ?? row.avgRating ?? row.averageRating ?? row.score ?? null,
-          reviews: row.reviewCount ?? row.review_count ?? row.ratingCount ?? row.rating_count ?? null
+          id: row.confirmid ?? null,
+          name: row.name ?? null,
+          rating: row.rating_average ?? null,
+          ratingCount: row.rating_count ?? null,
+          reviews: row.reviewCount ?? null
         }))
       });
     }
 
     const placeId = place.id;
     const sameId = rows.find(row =>
-      String(row.confirmid ?? row.id ?? row.place_id ?? row.placeId ?? "") === placeId
+      String(row.confirmid ?? "") === placeId
     );
 
     const wantedName = normalizeText(place.name);
     const wantedAddress = normalizeText(place.address);
     const sameName = rows
       .filter(row => {
-        const rowName = normalizeText(row.name ?? row.place_name);
-        const rowAddress = normalizeText(row.new_address ?? row.road_address_name ?? row.address_name ?? row.address);
+        const rowName = normalizeText(row.name);
+        const rowAddress = normalizeText(row.new_address ?? row.address);
         return rowName === wantedName ||
           (rowName && wantedName && (rowName.includes(wantedName) || wantedName.includes(rowName)) &&
            (!wantedAddress || !rowAddress || rowAddress.includes(wantedAddress) || wantedAddress.includes(rowAddress)));
       })
       .sort((a, b) => {
         const da = distanceMeters(place, {
-          x: numberOrNull(a.x ?? a.lon),
-          y: numberOrNull(a.y ?? a.lat)
+          x: numberOrNull(a.lon),
+          y: numberOrNull(a.lat)
         });
         const db = distanceMeters(place, {
-          x: numberOrNull(b.x ?? b.lon),
-          y: numberOrNull(b.y ?? b.lat)
+          x: numberOrNull(b.lon),
+          y: numberOrNull(b.lat)
         });
         return da - db;
       })[0];
@@ -168,8 +152,8 @@ async function fetchKakaoSearch(place, diagnostics) {
       .map(row => ({
         row,
         distance: distanceMeters(place, {
-          x: numberOrNull(row.x ?? row.lon),
-          y: numberOrNull(row.y ?? row.lat)
+          x: numberOrNull(row.lon),
+          y: numberOrNull(row.lat)
         })
       }))
       .filter(x => Number.isFinite(x.distance))
@@ -178,18 +162,18 @@ async function fetchKakaoSearch(place, diagnostics) {
     const match = sameId || sameName || (nearest && nearest.distance < 300 ? nearest.row : null);
 
     if (match) {
-      const rating = numberOrNull(
-        match.rating_average ?? match.ratingAverage ?? match.avgRating ?? match.averageRating ?? match.score
-      );
-      const reviewCount = numberOrNull(
-        match.reviewCount ?? match.review_count ?? match.ratingCount ?? match.rating_count
-      );
+      const ratingAverage = numberOrNull(match.rating_average);
+      const ratingCount = numberOrNull(match.rating_count);
+      // rating_average·rating_count 가 모두 0 이면 아직 평가가 없는 장소(미평가)다.
+      const rating = ratingAverage === null || (ratingAverage === 0 && !ratingCount) ? null : ratingAverage;
+      const reviewCount = numberOrNull(match.reviewCount);
       if (rating !== null) {
         diagnostics.rated++;
         return {
           id: place.id,
           rating,
           reviewCount,
+          ratingCount,
           matched: true,
           source: "kakaomap"
         };
@@ -238,6 +222,7 @@ async function mapLimit(items, limit, worker) {
 async function handler(request) {
   const origin = request.headers.get("origin") || "";
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+  if (request.method === "GET") return json({ ok: true, service: "jigeum-yeogi-kakao-ratings" }, 200, origin);
   if (request.method !== "POST") return json({ error: "POST만 허용됩니다." }, 405, origin);
 
   try {
