@@ -16,8 +16,8 @@
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Arial,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
     button,input{font:inherit}.app{max-width:1100px;margin:auto;min-height:100vh}
     .top{padding:calc(14px + env(safe-area-inset-top)) 18px 16px;background:linear-gradient(135deg,#111827 0%,#1f2937 65%,#374151 100%);color:#fff;border-radius:0 0 26px 26px}
-    .brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:20px;box-shadow:0 6px 18px rgba(0,0,0,.15)}
-    h1{margin:0;font-size:23px;letter-spacing:-.5px}.sub{margin:6px 0 0;color:#d1d5db;font-size:13px}
+    .brand{display:flex;align-items:center;gap:10px}.logo{width:38px;height:38px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:20px;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+    h1{margin:0;font-size:clamp(18px,5.6vw,23px);letter-spacing:-.5px;white-space:nowrap}.meal{margin-left:auto;display:flex;flex-shrink:0;background:rgba(255,255,255,.14);border-radius:999px;padding:3px}.meal button{border:0;background:none;color:#e5e7eb;padding:7px clamp(7px,2.6vw,11px);border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}.meal button.on{background:#fff;color:#111827}.sub{margin:6px 0 0;color:#d1d5db;font-size:13px}
     .hero{margin-top:12px;display:grid;gap:10px}.search{display:flex;background:#fff;border-radius:16px;padding:6px;box-shadow:var(--shadow)}.search input{flex:1;border:0;outline:0;padding:12px;color:var(--text);min-width:0}.search button{border:0;border-radius:12px;background:var(--accent);color:#fff;padding:0 16px;font-weight:700}
     .locationbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.locbtn{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;padding:9px 12px;border-radius:12px;cursor:pointer}.locsearch{flex:1;min-width:180px;max-width:420px;border:1px solid rgba(255,255,255,.2);background:#fff;color:var(--text);padding:9px 12px;border-radius:12px;outline:0}.locstate{flex:1;min-width:0;font-size:13px;color:#e5e7eb}.search.loc{padding:4px}.search.loc input{padding:9px 12px}.search.loc button{background:#374151;font-size:14px}
     .content{padding:16px 18px 34px}.notice{display:none;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;margin-bottom:12px;font-size:13px}.notice.show{display:block}
@@ -52,7 +52,7 @@
 <body data-app-version="2026-09-25-layout-v5">
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1></div>
+    <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
     <div class="hero">
       <div class="search"><input id="query" placeholder="예: 고기국수, 돈까스" autocomplete="off" enterkeyhint="search" /><button id="searchBtn">찾기</button></div>
       <div class="search loc"><input id="locationQuery" placeholder="지역·주소" autocomplete="off" enterkeyhint="search" /><button id="locationSearchBtn">위치 찾기</button></div>
@@ -63,7 +63,7 @@
   <main class="content">
     <div class="notice" id="notice"></div>
     <section class="history" id="history">
-      <div class="hhead"><b>📅 이번 주 점심</b><button id="histToggle" aria-expanded="false">펼치기 ▾</button></div>
+      <div class="hhead"><b id="histTitle">📅 이번 주 점심</b><button id="histToggle" aria-expanded="false">펼치기 ▾</button></div>
       <div class="week" id="week"></div>
       <ul class="hlist" id="hlist" hidden></ul>
     </section>
@@ -113,7 +113,7 @@
     <div class="footer">
       <div class="source">데이터 출처: 카카오 장소 검색 · 카카오맵 평점 · Open-Meteo 날씨</div>
       <p>추천 순위는 카카오맵 평점을 <b>평가 인원수로 보정한 신뢰 점수</b>에 거리·상황·날씨·최근 방문 기록을 더해 계산합니다. 평점은 카카오맵 데이터이며 정확성을 보장하지 않습니다.</p>
-      <p><b>개인정보 안내</b> · 위치는 이 기기에서 주변 검색에만 쓰이며, 검색을 위해 카카오 지도 서비스에 좌표가 전달됩니다. 날씨 조회에는 약 100m 단위로 줄인 좌표만 전송합니다. 평점 조회 시에는 가게 이름·주소만 중계 서버로 보내며 별도로 저장하지 않습니다. 점심 기록은 <b>이 기기에만</b> 저장되고 서버로 전송되지 않습니다.</p>
+      <p><b>개인정보 안내</b> · 위치는 이 기기에서 주변 검색에만 쓰이며, 검색을 위해 카카오 지도 서비스에 좌표가 전달됩니다. 날씨 조회에는 약 100m 단위로 줄인 좌표만 전송합니다. 평점 조회 시에는 가게 이름·주소만 중계 서버로 보내며 별도로 저장하지 않습니다. 점심·저녁 기록은 <b>이 기기에만</b> 저장되고 서버로 전송되지 않습니다.</p>
       <p id="kakaoPrefRow" style="display:none">카카오맵 열기 방식: <b id="kakaoPrefText"></b> · <button class="link" id="kakaoPrefReset">바꾸기</button></p>
       <p>이 앱은 개인이 만든 <b>비공식 서비스</b>로, 제주특별자치도의 공식 서비스가 아닙니다.</p>
     </div>
@@ -139,12 +139,12 @@
   const MIN_RATING=3.7;
   const MAX_SHOW=30;
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
-  const state={lat:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
+  const state={meal:'lunch',lat:null,lng:null,radius:1200,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
   const radiusOpts=[['도보 5분',400],['도보 10분',800],['도보 15분',1200],['2km',2000],['3km',3000],['5km',5000]];
   const WEEKDAYS=['일','월','화','수','목','금','토'];
 
   // 음식 종류: [키, 칩 이름, 카카오 검색어, 카테고리 판별]
-  const FOODS=[
+  const FOODS_LUNCH=[
     ['all','🍽️ 전체','음식점',p=>isRestaurant(p)],
     ['korean','🍚 한식','한식',p=>/한식/.test(p.category_name)],
     ['chinese','🥟 중식','중식',p=>/중식|중국/.test(p.category_name)],
@@ -155,7 +155,22 @@
     ['cafe','☕ 카페','카페',p=>isCafe(p)],
     ['bar','🍺 술집','술집',p=>isBar(p)]
   ];
-  const FOOD=Object.fromEntries(FOODS.map(f=>[f[0],{label:f[1],query:f[2],test:f[3]}]));
+  // 저녁은 '1차'로 갈 만한 곳 위주
+  const FOODS_DINNER=[
+    ['all','🍽️ 1차 전체','음식점',p=>isDinnerMain(p)],
+    ['meat','🥩 고기구이','고기구이',p=>/육류|고기|구이|곱창|막창|갈비|삼겹|돼지|소고기|한우|양꼬치|오리/.test(p.category_name)],
+    ['blackpork','🐷 흑돼지','흑돼지',p=>/흑돼지/.test(textOf(p))],
+    ['sea','🐟 회·해산물','횟집',p=>/회|해물|해산물|생선|조개|장어|아구|대게|방어/.test(p.category_name)],
+    ['jokbal','🍖 족발·보쌈','족발',p=>/족발|보쌈/.test(textOf(p))],
+    ['stew','🍲 전골·찜','전골',p=>/전골|찜|샤브|탕|닭볶음/.test(p.category_name)],
+    ['chinese','🥟 중식 요리','중식',p=>/중식|중국/.test(p.category_name)],
+    ['bar','🍺 2차 술집','술집',p=>isBar(p)]
+  ];
+  const NOT_DINNER_MAIN=/분식|김밥|패스트푸드|햄버거|샌드위치|도시락|토스트|제과|베이커리|간식|디저트|아이스크림|죽|샐러드|카페/;
+  function isDinnerMain(p){return isRestaurant(p)&&!isCafe(p)&&!NOT_DINNER_MAIN.test(textOf(p))}
+  let FOODS=FOODS_LUNCH, FOOD={};
+  function buildFoodMap(){FOOD=Object.fromEntries(FOODS.map(f=>[f[0],{label:f[1],query:f[2],test:f[3]}]))}
+  buildFoodMap();
   // 키즈카페·스터디카페처럼 먹으러 가는 곳이 아닌 '카페'는 모든 검색에서 뺀다
   const NOT_EATERY=/키즈|어린이|실내놀이|놀이카페|스터디|독서실|보드카페|보드게임|만화카페|룸카페|멀티방|방탈출|사주카페|VR|PC방/i;
   function isEatery(p){return !NOT_EATERY.test(textOf(p))}
@@ -178,12 +193,22 @@
   // 날씨 반영용 메뉴 성향
   const SOUP=['국밥','해장','국수','칼국수','설렁탕','곰탕','갈비탕','찌개','전골','라멘','라면','우동','쌀국수','짬뽕','수제비','몸국','뚝배기','순대','샤브','탕'];
   const LIGHT=['샐러드','샌드위치','김밥','분식','베이커리','브런치','포케','비빔밥','냉면','메밀','초밥','물회','덮밥'];
-  const SITUATIONS={
-    solo:{label:'🍚 혼밥',kw:['국밥','해장','국수','분식','김밥','덮밥','라멘','우동','돈까스','돈가스','백반','쌀국수','햄버거','샌드위치','칼국수'],why:'혼밥하기 편한 메뉴'},
-    team:{label:'👥 팀 점심',kw:['한식','백반','한정식','중식','중국요리','고기','찌개','국밥','뷔페','칼국수','해물','육류','뚝배기'],why:'여럿이 가기 무난한 메뉴'},
-    guest:{label:'🤝 손님 모시기',kw:['한정식','일식','초밥','회','향토','갈치','흑돼지','전복','해물','코스','샤브','옥돔'],why:'손님 모시기 좋은 메뉴'},
-    dinner:{label:'🍻 회식',kw:['고기','삼겹살','흑돼지','갈비','육류','회','술집','이자카야','중식','중국요리','족발','보쌈','치킨'],why:'회식 분위기에 맞는 메뉴'}
+  const SITUATIONS_LUNCH={
+    solo:{label:'🍚 혼밥',walkExtra:0.8,kw:['국밥','해장','국수','분식','김밥','덮밥','라멘','우동','돈까스','돈가스','백반','쌀국수','햄버거','샌드위치','칼국수'],why:'혼밥하기 편한 메뉴'},
+    team:{label:'👥 팀 점심',kw:['한식','백반','한정식','중식','중국요리','고기','찌개','국밥','뷔페','칼국수','해물','육류','뚝배기'],why:'여럿이 가기 무난한 메뉴',crowd:true},
+    guest:{label:'🤝 손님 모시기',kw:['한정식','일식','초밥','회','향토','갈치','흑돼지','전복','해물','코스','샤브','옥돔'],why:'손님 모시기 좋은 메뉴',formal:true}
   };
+  const SITUATIONS_DINNER={
+    company:{label:'👔 회식 1차',kw:['고기','삼겹살','흑돼지','갈비','육류','구이','회','횟집','해물','족발','보쌈','중식','중국요리','전골','샤브','오리','곱창'],why:'회식 1차로 많이 가는 메뉴',crowd:true},
+    friends:{label:'🍻 친구·동료',kw:['고기','삼겹살','흑돼지','곱창','막창','회','해물','이자카야','요리주점','닭갈비','양꼬치','족발','치킨','호프'],why:'한잔 곁들이기 좋은 메뉴'},
+    family:{label:'👨‍👩‍👧 가족 외식',kw:['한정식','갈비','고기','흑돼지','해물','갈치','고등어','샤브','뷔페','중식','이탈리','패밀리레스토랑','돈까스','돈가스'],why:'가족이 함께 먹기 좋은 메뉴',crowd:true},
+    guest:{label:'🤝 손님 접대',kw:['한정식','일식','초밥','회','향토','갈치','흑돼지','전복','해물','코스','샤브','옥돔','소고기','한우'],why:'손님 접대하기 좋은 메뉴',formal:true}
+  };
+  // 저녁 1차 단골 메뉴 · 더운 날 저녁 메뉴
+  const DINNER_MAIN_KW=['삼겹살','흑돼지','돼지','소고기','한우','갈비','육류','구이','곱창','막창','회','횟집','해물','조개','장어','족발','보쌈','닭갈비','전골','샤브','오리','양꼬치','갈치','방어'];
+  const COOL=['회','물회','냉채','초밥','냉면','족발','막국수'];
+  let SITUATIONS=SITUATIONS_LUNCH;
+  const MEAL_LABEL={lunch:'점심',dinner:'저녁'};
 
   const $=id=>document.getElementById(id);
   function notice(msg){$('notice').textContent=msg;$('notice').classList.add('show')}
@@ -255,6 +280,7 @@
   const HISTORY_KEY='jy-lunch-history-v1';
   function loadHistory(){const v=store(HISTORY_KEY,[]);return Array.isArray(v)?v.filter(h=>h&&h.id&&h.ts):[]}
   function saveHistory(list){save(HISTORY_KEY,list.sort((a,b)=>b.ts-a.ts).slice(0,60))}
+  function mealOf(h){return h.meal||'lunch'}
   function lastVisit(id,days){return loadHistory().find(h=>String(h.id)===String(id)&&daysBetween(h.ts)<days)}
   function setHistoryOpen(open){
     $('hlist').hidden=!open;
@@ -262,7 +288,8 @@
     $('histToggle').setAttribute('aria-expanded',String(open));
   }
   function renderHistory(){
-    const hist=loadHistory();
+    const hist=loadHistory().filter(h=>mealOf(h)===state.meal);
+    $('histTitle').textContent='📅 이번 주 '+MEAL_LABEL[state.meal];
     const now=new Date(); const monday=startOfDay(now)-((now.getDay()+6)%7)*86400000;
     let week='';
     for(let i=0;i<5;i++){
@@ -276,7 +303,7 @@
     $('hlist').innerHTML=hist.length?hist.slice(0,30).map(h=>
       '<li><span class="hd">'+fmtDate(h.ts)+'</span><span class="hn">'+escapeHtml(h.name)+' · '+escapeHtml(h.menu||'')+'</span>'+
       '<button data-hplace="'+escapeHtml(h.id)+'" title="카카오맵에서 보기">🗺️</button>'+
-      '<button data-del="'+h.ts+'" title="기록 삭제">✕</button></li>').join(''):'<li class="hempty">아직 기록이 없어요. 추천 카드에서 "✅ 여기로 결정"을 누르면 날짜·요일별로 쌓여요.</li>';
+      '<button data-del="'+h.ts+'" title="기록 삭제">✕</button></li>').join(''):'<li class="hempty">아직 '+MEAL_LABEL[state.meal]+' 기록이 없어요. 추천 카드에서 "✅ 여기로 결정"을 누르면 날짜·요일별로 쌓여요.</li>';
     document.querySelectorAll('[data-hplace]').forEach(b=>b.onclick=()=>openKakao('place',{id:b.dataset.hplace}));
     document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
       if(!confirm('이 기록을 지울까요?')) return;
@@ -333,17 +360,24 @@
     s-=walk*1.1;
     const text=textOf(p);
     const w=state.weather;
+    const dinner=state.meal==='dinner';
     if(w&&w.kind&&!typedQuery){
-      const list=w.kind==='soup'?SOUP:LIGHT;
-      if(list.some(k=>text.includes(k))){s+=12;plus.push(w.why+' → '+menuLabel(p));}
+      const list=w.kind==='soup'?SOUP:dinner?COOL:LIGHT;
+      if(list.some(k=>text.includes(k))){s+=12;plus.push((dinner?w.why.replace('가볍게','시원하게'):w.why)+' → '+menuLabel(p));}
     }
     const sit=SITUATIONS[state.situation];
-    if(sit.kw.some(k=>text.includes(k))){s+=state.situation==='guest'?28:14;plus.push(sit.label.split(' ')[0]+' '+sit.why);}
-    else if(state.situation==='guest') s-=8;
+    if(sit.kw.some(k=>text.includes(k))){s+=sit.formal?28:14;plus.push(sit.label.split(' ')[0]+' '+sit.why);}
+    else if(sit.formal) s-=8;
     const v=Number(p.__ratingCount||0), R=Number(p.__rating||4);
-    if(state.situation==='solo') s-=walk*0.8;
-    if(state.situation==='team'||state.situation==='dinner') s+=Math.min(10,Math.log10(v+1)*4);
-    if(state.situation==='guest') s+=(R-4)*25;
+    if(sit.walkExtra) s-=walk*sit.walkExtra;
+    if(sit.crowd) s+=Math.min(10,Math.log10(v+1)*4);
+    if(sit.formal) s+=(R-4)*25;
+    if(dinner){
+      // 저녁은 조금 멀어도 괜찮고, 1차로 앉아서 먹고 마실 곳을 올린다
+      s+=walk*0.4;
+      if(!typedQuery&&DINNER_MAIN_KW.some(k=>text.includes(k))){s+=8;if(!sit.kw.some(k=>text.includes(k)))plus.push('🌙 저녁 1차로 인기 있는 메뉴');}
+      if(!typedQuery&&state.food!=='bar'&&isBar(p)&&sit!==SITUATIONS_DINNER.friends) s-=10;
+    }
 
     // 최근 7일 안에 간 곳은 배너 + 순위를 내린다 (최근일수록 더 많이)
     const visit=lastVisit(p.id,7);
@@ -352,7 +386,8 @@
       const same=loadHistory().find(h=>daysBetween(h.ts)<3&&h.menu&&h.menu===menuLabel(p));
       if(same){s-=8;minus.push(whenText(same.ts)+' 먹은 메뉴('+same.menu+')와 같아요');}
     }
-    if(walk<=20) plus.push('🚶 도보 '+walk+'분 · 점심 60분 중 식사 '+(60-walk*2)+'분 확보');
+    if(state.meal==='dinner') plus.push(walk<=20?'🚶 도보 '+walk+'분':'🚕 '+fmtDistance(p.distance)+' · 택시로 약 '+Math.max(3,Math.round(p.distance/400))+'분');
+    else if(walk<=20) plus.push('🚶 도보 '+walk+'분 · 점심 60분 중 식사 '+(60-walk*2)+'분 확보');
     else plus.push('🚗 '+fmtDistance(p.distance)+' 거리 (차량 이동 권장)');
     return {score:s,plus,minus,badges,walk,visit};
   }
@@ -364,6 +399,7 @@
 
   // ── 렌더링 ──
   function renderChips(){
+    document.querySelectorAll('[data-meal]').forEach(b=>{const on=b.dataset.meal===state.meal;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));});
     $('situationChips').innerHTML=Object.keys(SITUATIONS).map(k=>`<button class="chip ${state.situation===k?'active':''}" data-sit="${k}">${SITUATIONS[k].label}</button>`).join('');
     $('foodChips').innerHTML=FOODS.map(([k,l])=>`<button class="chip ${state.food===k?'active':''}" data-food="${k}">${l}</button>`).join('');
     $('radiusChips').innerHTML=radiusOpts.map(([t,v])=>`<button class="chip ${state.radius===v?'active':''}" data-radius="${v}">${t}${v<=1200?' · '+fmtDistance(v):''}</button>`).join('');
@@ -385,12 +421,12 @@
     $('pick').classList.add('show');
     $('pickVisited').textContent=s.visit?'🔁 '+whenText(s.visit.ts)+'에 다녀온 곳이에요 · '+fmtDate(s.visit.ts):'';
     $('pickVisited').classList.toggle('show',!!s.visit);
-    $('pickLabel').textContent=state.pickIdx===0?'👑 오늘은 여기 어때요?':'👉 '+(state.pickIdx+1)+'순위 후보';
+    $('pickLabel').textContent=state.pickIdx===0?(state.meal==='dinner'?'👑 오늘 저녁 1차, 여기 어때요?':'👑 오늘은 여기 어때요?'):'👉 '+(state.pickIdx+1)+'순위 후보';
     $('pickName').textContent=p.place_name;
     $('pickMenu').textContent=foodLabelOf(p)+' · '+menuLabel(p)+' · '+fmtDistance(p.distance)+(p.road_address_name?' · '+p.road_address_name:'');
     $('pickBadges').innerHTML=badgeHtml(s.badges);
     $('pickWhy').innerHTML=s.plus.map(t=>'<li>'+escapeHtml(t)+'</li>').join('')+s.minus.map(t=>'<li class="minus">'+escapeHtml(t)+'</li>').join('');
-    $('ethics').classList.toggle('show',state.situation==='guest');
+    $('ethics').classList.toggle('show',!!SITUATIONS[state.situation].formal);
     highlightPickOnMap(p);
     document.querySelectorAll('.card').forEach(el=>el.classList.toggle('is-pick',+el.dataset.index===state.pickIdx));
   }
@@ -420,6 +456,17 @@
     $('summary').textContent=state.ratingsDown
       ? '추천 '+top.length+'곳 · 평점 없이 거리·조건 기준 · '+range
       : '추천 순위 '+top.length+'곳 (후보 '+state.searchedCount+'곳 중 평점 '+MIN_RATING+'↑) · '+range;
+  }
+  function setMeal(meal){
+    state.meal=meal;
+    const dinner=meal==='dinner';
+    FOODS=dinner?FOODS_DINNER:FOODS_LUNCH; buildFoodMap();
+    SITUATIONS=dinner?SITUATIONS_DINNER:SITUATIONS_LUNCH;
+    if(!FOOD[state.food]) state.food='all';
+    if(!SITUATIONS[state.situation]) state.situation=dinner?'company':'team';
+    $('query').placeholder=dinner?'예: 흑돼지, 횟집':'예: 고기국수, 돈까스';
+    $('decideBtn').textContent='✅ 여기로 결정! (오늘 '+MEAL_LABEL[meal]+'으로 기록)';
+    renderChips(); renderHistory();
   }
   function rerank(){
     renderContext();
@@ -666,11 +713,11 @@
   $('decideBtn').onclick=()=>{
     const p=state.ranked[state.pickIdx]; if(!p) return;
     const hist=loadHistory();
-    if(hist.some(h=>String(h.id)===String(p.id)&&daysBetween(h.ts)===0)){toast('오늘 이미 기록된 곳이에요');return;}
-    hist.unshift({id:String(p.id),name:p.place_name,menu:menuLabel(p),food:foodLabelOf(p),url:placeUrl(p),ts:Date.now()});
+    if(hist.some(h=>String(h.id)===String(p.id)&&daysBetween(h.ts)===0&&mealOf(h)===state.meal)){toast('오늘 '+MEAL_LABEL[state.meal]+'으로 이미 기록된 곳이에요');return;}
+    hist.unshift({id:String(p.id),name:p.place_name,menu:menuLabel(p),food:foodLabelOf(p),url:placeUrl(p),ts:Date.now(),meal:state.meal});
     saveHistory(hist);
     renderHistory(); renderContext();
-    toast('✅ '+fmtDate(Date.now())+' 점심: '+p.place_name+' 기록 완료!');
+    toast('✅ '+fmtDate(Date.now())+' '+MEAL_LABEL[state.meal]+': '+p.place_name+' 기록 완료!');
   };
   $('pickPlaceBtn').onclick=()=>openKakao('place',state.ranked[state.pickIdx]);
   $('pickRouteBtn').onclick=()=>openKakao('route',state.ranked[state.pickIdx]);
@@ -698,9 +745,9 @@
   };
   $('shareBtn').onclick=async()=>{
     const top=state.ranked.slice(0,3); if(!top.length) return;
-    const text='[오늘 점심 후보 · 지금 여기 맛집]\n'+top.map((p,i)=>(i+1)+'. '+p.place_name+' ('+menuLabel(p)+(p.__rating!=null?' · ⭐'+p.__rating.toFixed(1):'')+' · 도보 '+p.__s.walk+'분)\n   '+placeUrl(p)).join('\n')+'\n👉 번호로 골라주세요!';
+    const text='[오늘 '+(state.meal==='dinner'?'저녁 1차':'점심')+' 후보 · 지금 여기 맛집]\n'+top.map((p,i)=>(i+1)+'. '+p.place_name+' ('+menuLabel(p)+(p.__rating!=null?' · ⭐'+p.__rating.toFixed(1):'')+' · 도보 '+p.__s.walk+'분)\n   '+placeUrl(p)).join('\n')+'\n👉 번호로 골라주세요!';
     try{
-      if(navigator.share){await navigator.share({title:'오늘 점심 후보',text});return;}
+      if(navigator.share){await navigator.share({title:'오늘 '+MEAL_LABEL[state.meal]+' 후보',text});return;}
       await navigator.clipboard.writeText(text); toast('📋 후보 3곳을 복사했어요. 메신저에 붙여넣으세요');
     }catch(e){ if(e&&e.name!=='AbortError') toast('공유하지 못했어요'); }
   };
@@ -752,9 +799,10 @@
   }
   $('updateBtn').onclick=()=>location.reload();
 
-  renderChips();
+  document.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>{if(b.dataset.meal===state.meal)return;setMeal(b.dataset.meal);$('query').value='';state.autoExpanded=false;search();});
+  const hourNow=new Date().getHours();
+  setMeal(hourNow>=15||hourNow<4?'dinner':'lunch');
   renderContext();
-  renderHistory();
   renderKakaoPref();
   autoStart();
 })();
