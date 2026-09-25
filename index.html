@@ -157,7 +157,7 @@
   const MIN_RATING=3.7;
   const MAX_SHOW=30;
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
-  const state={meal:'lunch',lat:null,startName:null,lng:null,radius:1000,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,busy:false,pending:false,ratingsDown:false,searchedCount:0};
+  const state={meal:'lunch',lat:null,startName:null,lng:null,radius:1000,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,gen:0,ratingsDown:false,searchedCount:0};
   // 반경은 '길 따라 걷는 거리' 기준 (분당 67m = 시속 4km)
   const radiusOpts=[['도보 5분',335],['도보 10분',670],['도보 15분',1000],['2km',2000],['3km',3000],['5km',5000]];
   const WEEKDAYS=['일','월','화','수','목','금','토'];
@@ -430,14 +430,21 @@
     const got=segs.reduce((t,[a,z])=>t+Math.max(0,Math.min(z,slot.to)-Math.max(a,slot.from)),0);
     return {ok:got>=slot.need,label:(tomorrow?'내일 ':'')+slot.label,off:!segs.length};
   }
-  function hoursLine(p,now){
-    const st=openStatus(p.__hours,now); if(!st) return '';
+  const STATUS_LABEL={open:'영업 중',break:'브레이크타임',before:'영업 전',closed:'영업 종료',off:'오늘 휴무'};
+  function statusIcon(code){return code==='open'?'🟢':code==='break'||code==='before'?'🟡':'🔴'}
+  // 상태 + 오늘 여는 시간~닫는 시간 (+ 브레이크)
+  function hoursShort(p,now){
+    const st=openStatus(p.__hours,now); if(!st) return null;
     const e=hoursEntry(p.__hours,now);
-    let t=(st.code==='open'?'🟢 ':st.code==='break'||st.code==='before'?'🟡 ':'🔴 ')+st.text;
-    if(e&&e.h) t+=' · 오늘 '+e.h.replace('~',' ~ ');
-    if(e&&e.b&&e.b.length) t+=' · 브레이크 '+e.b.join(', ');
-    if(e&&e.lo) t+=' · 라스트오더 '+e.lo;
-    return t;
+    let t=STATUS_LABEL[st.code];
+    if(e&&e.h) t+=' · '+e.h.replace('~',' ~ ');
+    if(e&&e.b&&e.b.length) t+=' (브레이크 '+e.b.join(', ')+')';
+    return {code:st.code,text:t};
+  }
+  function hoursLine(p,now){
+    const h=hoursShort(p,now); if(!h) return '';
+    const e=hoursEntry(p.__hours,now);
+    return h.text+(e&&e.lo?' · 라스트오더 '+e.lo:'');
   }
 
   // ── 평점 캐시 (이 기기, 24시간) ──
@@ -517,13 +524,13 @@
     const now=new Date();
     const mo=mealOpen(p.__hours,state.meal,now);
     if(mo&&!mo.ok){s-=40;minus.push('⛔ '+mo.label+(mo.off?'은 휴무예요':'에 영업하지 않아요'));}
-    const hl=hoursLine(p,now); if(hl) plus.push('🕒 '+hl.replace(/^[🟢🟡🔴] /u,''));
+    const hl=hoursLine(p,now); if(hl) plus.push('🕒 '+hl);
     else plus.push('🕒 영업시간 정보 없음 · 카카오맵 상세확인에서 확인하세요');
     const walkTxt=p.__est?'🚶 도보 약 '+walk+'분 (직선 거리로 추정)':'🚶 도보 '+walk+'분 (길 따라 '+fmtDistance(p.distance)+')';
     if(state.meal==='dinner') plus.push(walk<=20?walkTxt:'🚕 '+distText(p)+' · 택시로 약 '+Math.max(3,Math.round(p.distance/400))+'분');
     else if(walk<=20) plus.push(walkTxt+' · 점심 60분 중 식사 '+(60-walk*2)+'분 확보');
     else plus.push('🚗 '+distText(p)+' 거리 (차량 이동 권장)');
-    return {score:s,plus,minus,badges,walk,visit,status:openStatus(p.__hours,now),mealOk:mo?mo.ok:null};
+    return {score:s,plus,minus,badges,walk,visit,status:hoursShort(p,now),mealOk:mo?mo.ok:null};
   }
   function rankResults(){
     const typed=$('query').value.trim();
@@ -580,7 +587,7 @@
         '<div class="row"><div class="name"><span class="rank">'+(i+1)+'</span>'+escapeHtml(p.place_name)+'</div><div class="distance">🚶'+(p.__est?'약 ':'')+s.walk+'분 · '+distText(p)+'</div></div>'+
         '<div class="cat">'+escapeHtml(foodLabelOf(p)+' · '+menuLabel(p))+'</div>'+
         '<div class="rating">'+rating+'</div>'+
-        (s.status?'<div class="hours h-'+s.status.code+'">'+(s.status.code==='open'?'🟢 ':s.status.code==='break'||s.status.code==='before'?'🟡 ':'🔴 ')+escapeHtml(s.status.text)+(s.mealOk===false?' · <b>식사 시간 영업 안 함</b>':'')+'</div>':'')+
+        (s.status?'<div class="hours h-'+s.status.code+'">'+statusIcon(s.status.code)+' '+escapeHtml(s.status.text)+(s.mealOk===false?' · <b>식사 시간 영업 안 함</b>':'')+'</div>':'')+
         (s.badges.length?'<div class="mini">'+badgeHtml(s.badges)+'</div>':'')+
         '<div class="actions"><button class="action" data-kakao="place" data-i="'+i+'">📍 카카오맵 상세확인</button><button class="action" data-kakao="route" data-i="'+i+'">🗺️ 길찾기</button></div>'+
         '</article>';
@@ -730,7 +737,7 @@
     const todo=[];
     rows.forEach(p=>{const c=cache[p.id];if(c&&now-c.t<RATING_TTL) result.set(String(p.id),c); else todo.push(p);});
     if(todo.length&&url){
-      await mapLimit(todo,12,async p=>{
+      await mapLimit(todo,24,async p=>{
         asked++;
         try{
           const q=new URLSearchParams({id:p.id,name:p.place_name,addr:p.road_address_name||p.address_name||'',x:p.x,y:p.y,v:'h1'});
@@ -746,11 +753,12 @@
     }else if(todo.length){failed=todo.length;asked=todo.length;}
     return {result,down:asked>0&&failed/asked>0.5};
   }
+  const searchMemo=new Map();
   async function search(){
     if(state.lat==null) return;
     if(!state.ps){ensureMap();return;}
-    if(state.busy){state.pending=true;return;}
-    state.busy=true;
+    // 새 검색이 시작되면 이전 검색 결과는 버린다 (앞 검색이 끝나길 기다리지 않음)
+    const gen=++state.gen; const stale=()=>gen!==state.gen;
     let again=false;
     clearNotice();
     $('summary').textContent='🔎 주변 가게를 찾고 평점을 확인하는 중…';
@@ -759,17 +767,31 @@
       const food=FOOD[state.food];
       const drink=q?drinkOf(q):null;
       const query=drink?drink.query:(q||food.query);
-      const opts={location:new kakao.maps.LatLng(state.lat,state.lng),radius:Math.min(Math.max(state.radius,100),20000),sort:kakao.maps.services.SortBy.DISTANCE,size:15};
+      // 최소 1km 로 찾아 두고 같은 위치·조건이면 다시 부르지 않는다 → 도보 5·10·15분 바꿀 때 바로 거름
+      const searchR=Math.min(Math.max(state.radius,1000),20000);
+      const opts={location:new kakao.maps.LatLng(state.lat,state.lng),radius:searchR,sort:kakao.maps.services.SortBy.DISTANCE,size:15};
+      const memoKey=[state.lat.toFixed(4),state.lng.toFixed(4),query,q?'q':state.food].join('|');
+      const memo=searchMemo.get(memoKey);
+      let res;
+      if(memo&&memo.radius>=state.radius&&Date.now()-memo.t<10*60*1000){res=memo.res;}
+      else{
       // 검색 여러 개를 동시에 보낸다: '바'·'맥주'처럼 짧은 말은 '술집' 결과를, 종류 칩은 업종 검색 결과(한 번에 최대 45곳 한계 보완)를 함께 모은다
       const [main,more,cat]=await Promise.all([
         searchPages(query,opts),
         drink&&drink.query!=='술집'?searchPages('술집',opts):null,
         !q?searchPages(state.food==='cafe'?'CE7':'FD6',opts,'categorySearch'):null
       ]);
-      let res=main;
+      if(stale()) return;
+      res=main;
       if(res.status===kakao.maps.services.Status.ERROR) res=await searchPages(query,{location:opts.location,size:15});
+      if(stale()) return;
       if(res.status!==kakao.maps.services.Status.ERROR){
         [more,cat].forEach(x=>{if(x&&x.status==='OK') res={status:'OK',rows:res.rows.concat(x.rows)};});
+      }
+      if(res.status==='OK'||res.status===kakao.maps.services.Status.ZERO_RESULT){
+        searchMemo.set(memoKey,{radius:searchR,res,t:Date.now()});
+        if(searchMemo.size>30) searchMemo.delete(searchMemo.keys().next().value);
+      }
       }
       if(res.status!=='OK'&&res.status!==kakao.maps.services.Status.ZERO_RESULT){
         notice(navigator.onLine===false?'인터넷 연결을 확인해 주세요.':'카카오 장소 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -787,6 +809,7 @@
         .filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);
       // 도보 거리와 평점·영업시간을 동시에 받아온다
       const [,rated]=rows.length?await Promise.all([applyWalkRoutes(rows),fetchRatings(rows)]):[null,{result:new Map(),down:false}];
+      if(stale()) return;
       const {result,down}=rated;
       rows=rows.filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);
       if(drink&&drink.narrow){const picked=rows.filter(p=>drink.narrow.test(textOf(p)));if(picked.length) rows=picked;}
@@ -815,11 +838,11 @@
       }
       rankResults(); renderContext(); renderList(); drawMarkers(); renderPick();
     }catch(error){
+      if(stale()) return;
       state.results=[];state.ranked=[];renderList();renderPick();
       notice('검색 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요.');
     }finally{
-      state.busy=false;
-      if(again||state.pending){state.pending=false;search();}
+      if(again&&!stale()) search();
     }
   }
 
