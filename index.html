@@ -730,7 +730,7 @@
     const todo=[];
     rows.forEach(p=>{const c=cache[p.id];if(c&&now-c.t<RATING_TTL) result.set(String(p.id),c); else todo.push(p);});
     if(todo.length&&url){
-      await mapLimit(todo,8,async p=>{
+      await mapLimit(todo,12,async p=>{
         asked++;
         try{
           const q=new URLSearchParams({id:p.id,name:p.place_name,addr:p.road_address_name||p.address_name||'',x:p.x,y:p.y,v:'h1'});
@@ -760,17 +760,16 @@
       const drink=q?drinkOf(q):null;
       const query=drink?drink.query:(q||food.query);
       const opts={location:new kakao.maps.LatLng(state.lat,state.lng),radius:Math.min(Math.max(state.radius,100),20000),sort:kakao.maps.services.SortBy.DISTANCE,size:15};
-      let res=await searchPages(query,opts);
+      // 검색 여러 개를 동시에 보낸다: '바'·'맥주'처럼 짧은 말은 '술집' 결과를, 종류 칩은 업종 검색 결과(한 번에 최대 45곳 한계 보완)를 함께 모은다
+      const [main,more,cat]=await Promise.all([
+        searchPages(query,opts),
+        drink&&drink.query!=='술집'?searchPages('술집',opts):null,
+        !q?searchPages(state.food==='cafe'?'CE7':'FD6',opts,'categorySearch'):null
+      ]);
+      let res=main;
       if(res.status===kakao.maps.services.Status.ERROR) res=await searchPages(query,{location:opts.location,size:15});
-      // '바'·'맥주'처럼 짧은 말은 결과가 적거나 엉뚱해서 '술집' 결과를 함께 모은다
-      if(drink&&drink.query!=='술집'&&res.status!==kakao.maps.services.Status.ERROR){
-        const more=await searchPages('술집',opts);
-        if(more.status==='OK') res={status:'OK',rows:res.rows.concat(more.rows)};
-      }
-      // 카카오 검색은 한 번에 최대 45곳이라, 종류 칩 검색은 업종 검색 결과도 합쳐 후보를 늘린다
-      if(!q&&res.status!==kakao.maps.services.Status.ERROR){
-        const cat=await searchPages(state.food==='cafe'?'CE7':'FD6',opts,'categorySearch');
-        if(cat.status==='OK') res={status:'OK',rows:res.rows.concat(cat.rows)};
+      if(res.status!==kakao.maps.services.Status.ERROR){
+        [more,cat].forEach(x=>{if(x&&x.status==='OK') res={status:'OK',rows:res.rows.concat(x.rows)};});
       }
       if(res.status!=='OK'&&res.status!==kakao.maps.services.Status.ZERO_RESULT){
         notice(navigator.onLine===false?'인터넷 연결을 확인해 주세요.':'카카오 장소 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -786,10 +785,12 @@
       });
       rows=rows.map(p=>Object.assign({},p,{distance:(p.distance!==undefined&&p.distance!=='')?Number(p.distance):distanceMeters(state.lat,state.lng,Number(p.y),Number(p.x))}))
         .filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);
-      if(rows.length){await applyWalkRoutes(rows);rows=rows.filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);}
+      // 도보 거리와 평점·영업시간을 동시에 받아온다
+      const [,rated]=rows.length?await Promise.all([applyWalkRoutes(rows),fetchRatings(rows)]):[null,{result:new Map(),down:false}];
+      const {result,down}=rated;
+      rows=rows.filter(p=>!Number.isFinite(p.distance)||p.distance<=state.radius);
       if(drink&&drink.narrow){const picked=rows.filter(p=>drink.narrow.test(textOf(p)));if(picked.length) rows=picked;}
       state.searchedCount=rows.length;
-      const {result,down}=rows.length?await fetchRatings(rows):{result:new Map(),down:false};
       state.ratingsDown=down;
       state.results=rows.filter(p=>{
         const r=result.get(String(p.id));
