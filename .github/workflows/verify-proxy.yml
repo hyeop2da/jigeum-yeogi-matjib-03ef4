@@ -58,6 +58,10 @@ jobs:
               print("::error::우진해장국 평점이 null 입니다.")
               sys.exit(1)
           print(f"우진해장국 rating={p['rating']} reviewCount={p.get('reviewCount')}")
+          h = p.get("hours") or {}
+          print("우진해장국 hours:", json.dumps(h, ensure_ascii=False)[:300])
+          if not h.get("days"):
+              print("::warning::우진해장국 영업시간을 받지 못했습니다 (카카오 가게 상세 응답 확인 필요)")
           PY
 
       - name: Check live GitHub Pages config.js

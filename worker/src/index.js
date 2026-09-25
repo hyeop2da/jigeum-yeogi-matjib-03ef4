@@ -1,7 +1,8 @@
-const VERSION = "2026-09-25-cdn-v3";
+const VERSION = "2026-09-25-hours-v1";
 const CACHE = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 const KAKAO_SEARCH_URL = "https://search.map.kakao.com/mapsearch/map.daum";
+const KAKAO_PANEL_URL = "https://place-api.map.kakao.com/places/panel3/";
 const ALLOWED_ORIGINS = new Set([
   "https://hyeop2da.github.io"
 ]);
@@ -185,16 +186,66 @@ async function fetchKakaoSearch(place, diagnostics) {
     source: "kakaomap"
   };
 }
+// 카카오맵 가게 상세의 '오늘부터 7일' 영업시간만 짧게 정리한다: [{d:"9/25", h:"12:00~23:00", b:["15:00~16:30"], lo:"14:10"} | {d, off:1}]
+function hhmmRange(text) {
+  const m = String(text || "").match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+  return m ? `${m[1]}~${m[2]}` : null;
+}
+async function fetchHours(place) {
+  if (!/^\d+$/.test(place.id)) return { hours: null, failed: false };
+  try {
+    const response = await fetch(KAKAO_PANEL_URL + place.id, {
+      headers: {
+        "Accept": "application/json",
+        "pf": "web",
+        "appVersion": "6.6.0",
+        "Origin": "https://place.map.kakao.com",
+        "Referer": "https://place.map.kakao.com/",
+        "User-Agent": "Mozilla/5.0 (compatible; JigeumYeogiMatjib/1.0)"
+      },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) return { hours: null, failed: response.status >= 500 || response.status === 429 };
+    const data = await response.json();
+    const oh = data?.open_hours;
+    const periods = oh?.week_from_today?.week_periods;
+    if (!Array.isArray(periods)) return { hours: null, failed: false };
+    const days = [];
+    for (const period of periods) {
+      for (const day of period?.days || []) {
+        const d = String(day?.day_of_the_week_desc || "").match(/(\d{1,2}\/\d{1,2})/)?.[1];
+        if (!d) continue;
+        if (day.off_days_desc && !day.on_days) { days.push({ d, off: 1 }); continue; }
+        const h = hhmmRange(day?.on_days?.start_end_time_desc);
+        if (!h) continue;
+        const item = { d, h };
+        const b = (day.on_days.break_times_desc || []).map(hhmmRange).filter(Boolean);
+        if (b.length) item.b = b;
+        const lo = String((day.on_days.last_order_times_desc || [])[0] || "").match(/\d{1,2}:\d{2}/)?.[0];
+        if (lo) item.lo = lo;
+        days.push(item);
+      }
+    }
+    if (!days.length) return { hours: null, failed: false };
+    const off = oh?.week_from_today?.days_off_desc || oh?.headline_addition?.days_off_desc || null;
+    return { hours: off ? { days, off: String(off).slice(0, 40) } : { days }, failed: false };
+  } catch (error) {
+    return { hours: null, failed: true };
+  }
+}
+
 async function enrichOne(place, diagnostics) {
   const cached = CACHE.get(place.id);
   if (cached && cached.expires > Date.now()) return cached.value;
   const errorsBefore = diagnostics.httpErrors + diagnostics.parseErrors;
   try {
-    const value = await fetchKakaoSearch(place, diagnostics);
+    const [value, hoursResult] = await Promise.all([fetchKakaoSearch(place, diagnostics), fetchHours(place)]);
+    value.hours = hoursResult.hours;
+    if (hoursResult.failed) value.hoursRetry = true;
     // 카카오 일시 오류로 못 찾은 결과는 오래 보관하지 않는다.
     const transient = value.rating === null && diagnostics.httpErrors + diagnostics.parseErrors > errorsBefore;
     if (transient) value.transient = true;
-    CACHE.set(place.id, { value, expires: Date.now() + (transient ? 60 * 1000 : CACHE_TTL) });
+    CACHE.set(place.id, { value, expires: Date.now() + (transient ? 60 * 1000 : hoursResult.failed ? 5 * 60 * 1000 : CACHE_TTL) });
     return value;
   } catch (error) {
     diagnostics.exceptions++;
@@ -277,9 +328,12 @@ async function placeLookup(params, origin) {
   }
   const diagnostics = { requests: 0, responses: 0, httpErrors: 0, parseErrors: 0, exceptions: 0, rated: 0, rowCounts: [], sample: [], lastError: null };
   const value = await enrichOne(place, diagnostics);
+  // 영업시간만 일시 오류면 평점은 쓰되 CDN 에는 10분만 보관해 곧 다시 받아온다.
   const cacheControl = value.transient
     ? "no-store"
-    : `public, max-age=3600, s-maxage=${PLACE_CACHE_SECONDS}, stale-while-revalidate=${PLACE_CACHE_SECONDS}`;
+    : value.hoursRetry
+      ? "public, max-age=600, s-maxage=600"
+      : `public, max-age=3600, s-maxage=${PLACE_CACHE_SECONDS}, stale-while-revalidate=${PLACE_CACHE_SECONDS}`;
   return new Response(JSON.stringify({ ...value, version: VERSION }), {
     status: 200,
     headers: { ...headers, "Cache-Control": cacheControl }
