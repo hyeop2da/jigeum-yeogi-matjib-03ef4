@@ -81,6 +81,11 @@
     kbd{background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-family:inherit;font-weight:700}
     button.btn{width:100%;border:0;cursor:pointer;font-family:inherit;margin-top:10px}.btn.dark{background:#111827;color:#fff}.btn.line{background:#fff;color:#111827;border:1px solid var(--line)}
     .go{margin-top:12px}
+    table.vs{background:#fff;border:1px solid var(--line);border-radius:14px;border-collapse:separate;border-spacing:0;overflow:hidden;font-size:13px;table-layout:fixed}
+    table.vs th,table.vs td{padding:9px 6px;text-align:center;vertical-align:middle;white-space:normal}
+    table.vs tbody th{text-align:left;font-weight:500;padding-left:12px;width:46%}
+    table.vs thead th{font-size:12px}table.vs thead th:first-child{width:46%}
+    table.vs td{color:var(--muted);font-size:12px}table.vs td.me{font-size:16px}
     details.more{background:none;border:0;padding:0}details.more>summary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
   </style>
 </head>
@@ -99,6 +104,24 @@
 </header>
 
 <main class="wrap">
+  <section>
+    <h2>다른 앱과 뭐가 달라요?</h2>
+    <p class="sub">지도 앱은 ‘찾기’, 맛집 앱은 ‘구경하기’, 이 앱은 <b>‘정하기’</b>예요.</p>
+    <table class="vs">
+      <thead><tr><th></th><th class="me">이 앱</th><th>지도 앱</th><th>맛집 앱</th></tr></thead>
+      <tbody>
+        <tr><th>👑 갈 곳 <b>한 곳</b>을 골라 줌</th><td class="me">✅</td><td>목록</td><td>목록</td></tr>
+        <tr><th>⭐ 평가 <b>인원수</b>까지 따진 평점</th><td class="me">✅</td><td>평균만</td><td>자체 점수</td></tr>
+        <tr><th>🚶 <b>길 따라 걷는 시간</b>으로 거름</th><td class="me">✅</td><td>길찾기에서</td><td>—</td></tr>
+        <tr><th>🕒 <b>식사 시간에 여는 곳</b> 먼저</th><td class="me">✅</td><td>표시만</td><td>일부</td></tr>
+        <tr><th>👥 혼밥·손님·회식, 🌧️ 날씨 반영</th><td class="me">✅</td><td>—</td><td>일부</td></tr>
+        <tr><th>🔁 이번 주 간 곳은 <b>피하기</b></th><td class="me">✅</td><td>—</td><td>—</td></tr>
+        <tr><th>🔒 설치·가입·광고 없음</th><td class="me">✅</td><td>앱 설치</td><td>가입·광고</td></tr>
+      </tbody>
+    </table>
+    <p class="note">지도·맛집 앱은 일반적인 사용 방식 기준. 길찾기·가게 상세는 쓰던 카카오맵으로 연결돼요.</p>
+  </section>
+
   <section id="install">
     <h2>📲 1분이면 설치 끝</h2>
     <p class="sub">앱스토어 없이 홈 화면에 🍜 아이콘이 생겨요.</p>
@@ -135,43 +158,6 @@
       <li><div><b>👑 추천 한 곳 확인</b><small>별로면 👉 다른 곳 · 🎲 운에 맡기기</small></div></li>
       <li><div><b>🗺️ 길찾기 · 📤 공유 · ✅ 기록</b></div></li>
     </ol>
-  </section>
-
-  <section>
-    <h2>이런 점이 좋아요</h2>
-    <div class="feats">
-      <div class="feat"><div class="ic">👑</div><h3>딱 한 곳 추천</h3><p>목록 대신 1순위와 이유부터.</p></div>
-      <div class="feat"><div class="ic">⭐</div><h3>믿을 만한 평점</h3><p>평가 인원·블로그 후기까지 봐요.</p></div>
-      <div class="feat"><div class="ic">🚶</div><h3>걷는 시간·영업시간</h3><p>길 따라 몇 분, 그 시간에 여는지.</p></div>
-      <div class="feat"><div class="ic">🌙</div><h3>점심부터 2차까지</h3><p>해장·카페, 저녁 1차·2차 술집.</p></div>
-    </div>
-  </section>
-
-  <section>
-    <h2>다른 앱과 뭐가 달라요?</h2>
-    <p class="sub">지도 앱은 ‘찾기’, 맛집 앱은 ‘구경하기’, 이 앱은 <b>‘정하기’</b>예요.</p>
-    <details class="more"><summary>📊 비교표 펼쳐 보기</summary>
-    <div class="tablewrap">
-      <table class="cmp">
-        <thead><tr><th>비교 항목</th><th class="me">지금 여기 맛집</th><th>지도 앱<br><small>카카오맵·네이버지도</small></th><th>맛집 리뷰 앱</th></tr></thead>
-        <tbody>
-          <tr><th>쓰는 목적</th><td class="me" data-l="지금 여기 맛집"><span>오늘 갈 곳을 <b>정하기</b></span></td><td data-l="지도 앱"><span>장소를 <b>찾기</b>·길찾기</span></td><td data-l="맛집 리뷰 앱"><span>맛집을 <b>구경하기</b></span></td></tr>
-          <tr><th>보여주는 결과</th><td class="me" data-l="지금 여기 맛집"><span>👑 추천 1곳 + 추천 이유, 후보 최대 30곳 순위</span></td><td data-l="지도 앱"><span>검색어에 맞는 장소 목록</span></td><td data-l="맛집 리뷰 앱"><span>리뷰·사진 위주 목록</span></td></tr>
-          <tr><th>결정 방식</th><td class="me" data-l="지금 여기 맛집"><span>누구랑·무엇을·거리만 고르면 앱이 순위 계산</span></td><td data-l="지도 앱"><span>내가 목록을 비교해서 고름</span></td><td data-l="맛집 리뷰 앱"><span>내가 리뷰를 읽고 고름</span></td></tr>
-          <tr><th>평점</th><td class="me" data-l="지금 여기 맛집"><span>평가 인원수로 보정, 평점 없으면 블로그 후기 수로 인기 판단</span></td><td data-l="지도 앱"><span>평균 점수 그대로 표시</span></td><td data-l="맛집 리뷰 앱"><span>앱 자체 점수·리뷰</span></td></tr>
-          <tr><th>상황별 추천</th><td class="me" data-l="지금 여기 맛집"><span>혼밥·팀 점심·손님·회식 1차·가족 외식</span></td><td data-l="지도 앱"><span>—</span></td><td data-l="맛집 리뷰 앱"><span>테마·필터 일부</span></td></tr>
-          <tr><th>걷는 거리</th><td class="me" data-l="지금 여기 맛집"><span>길 따라 걷는 시간으로 거르고 순위 반영</span></td><td data-l="지도 앱"><span>길찾기에서 시간 확인</span></td><td data-l="맛집 리뷰 앱"><span>거리 필터 일부</span></td></tr>
-          <tr><th>넓은 지역 찾기</th><td class="me" data-l="지금 여기 맛집"><span>“구좌읍”처럼 읍·면 전체를 한 번에, 동네 칩으로 좁히기</span></td><td data-l="지도 앱"><span>지도를 옮겨 가며 찾기</span></td><td data-l="맛집 리뷰 앱"><span>지역 필터</span></td></tr>
-          <tr><th>영업시간</th><td class="me" data-l="지금 여기 맛집"><span>오늘 여는~닫는 시간 표시, 식사 시간(11:30~13:30·18~20시)에 닫으면 뒤로</span></td><td data-l="지도 앱"><span>영업 여부·시간 표시</span></td><td data-l="맛집 리뷰 앱"><span>일부 표시</span></td></tr>
-          <tr><th>날씨</th><td class="me" data-l="지금 여기 맛집"><span>비·추위엔 국물, 더위엔 시원한 메뉴</span></td><td data-l="지도 앱"><span>—</span></td><td data-l="맛집 리뷰 앱"><span>—</span></td></tr>
-          <tr><th>최근 방문</th><td class="me" data-l="지금 여기 맛집"><span>이번 주 간 곳·메뉴는 순위 내림, 요일별 기록</span></td><td data-l="지도 앱"><span>즐겨찾기 저장</span></td><td data-l="맛집 리뷰 앱"><span>가 본 곳 기록(일부)</span></td></tr>
-          <tr><th>동료에게 알리기</th><td class="me" data-l="지금 여기 맛집"><span>가게·도보 시간·길찾기 링크 글을 고쳐서 공유</span></td><td data-l="지도 앱"><span>장소 링크 공유</span></td><td data-l="맛집 리뷰 앱"><span>장소 링크 공유</span></td></tr>
-          <tr><th>설치·가입</th><td class="me" data-l="지금 여기 맛집"><span>홈 화면 추가, 가입·광고 없음, 무료</span></td><td data-l="지도 앱"><span>앱 설치</span></td><td data-l="맛집 리뷰 앱"><span>앱 설치·가입</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">지도·리뷰 앱은 일반적인 사용 방식 기준이에요.</p>
-    </details>
   </section>
 
   <section>
