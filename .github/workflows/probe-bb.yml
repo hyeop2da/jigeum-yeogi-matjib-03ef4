@@ -1,0 +1,45 @@
+name: Probe Blue Bottle (temporary)
+on:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/probe-bb.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Blue Bottle in 구좌읍
+        run: |
+          python3 - <<'PY'
+          import json, re, math, urllib.request, urllib.parse
+          cfg = open("config.js").read()
+          JS = re.search(r"KAKAO_JS_KEY:\s*'([^']+)'", cfg).group(1)
+          PROXY = re.search(r"KAKAO_PROXY_URL:\s*'([^']+)'", cfg).group(1)
+          O = "https://hyeop2da.github.io"
+          sdk = {"Authorization": "KakaoAK " + JS, "KA": "sdk/4.4.19 os/javascript lang/ko-KR device/Win32 origin/" + urllib.parse.quote(O), "Origin": O, "Referer": O + "/", "User-Agent": "Mozilla/5.0"}
+          def get(path, q):
+              return json.load(urllib.request.urlopen(urllib.request.Request("https://dapi.kakao.com/v2/local/" + path + ".json?" + urllib.parse.urlencode(q), headers=sdk)))
+          bb = get("search/keyword", {"query": "블루보틀 제주"})["documents"]
+          for r in bb[:3]: print("BB:", r["id"], r["place_name"], r["category_name"], r["category_group_code"], r["address_name"], r["x"], r["y"])
+          b = bb[0]
+          q = urllib.parse.urlencode({"id": b["id"], "name": b["place_name"], "addr": b.get("road_address_name") or "", "x": b["x"], "y": b["y"], "v": "probebb"})
+          print("rating:", urllib.request.urlopen(urllib.request.Request(PROXY + "?" + q, headers={"Origin": O})).read()[:400])
+          a = get("search/address", {"query": "구좌읍"})["documents"]
+          for r in a[:3]: print("ADDR:", r["address_name"], r.get("address_type"), r["x"], r["y"])
+          cx, cy = float(a[0]["x"]), float(a[0]["y"])
+          R = 8000; sub = min(20000, max(1000, round(R*0.6)))
+          dLat = R*0.5/111000; dLng = R*0.5/(111000*math.cos(cy*math.pi/180))
+          def hv(y1,x1,y2,x2):
+              t=math.pi/180; h=math.sin((y2-y1)*t/2)**2+math.cos(y1*t)*math.cos(y2*t)*math.sin((x2-x1)*t/2)**2; return 2*6371000*math.asin(math.sqrt(h))
+          print("BB 거리 from 구좌읍 center:", round(hv(cy,cx,float(b["y"]),float(b["x"]))))
+          for (a1,b1) in [(0,0),(dLat,0),(-dLat,0),(0,dLng),(0,-dLng)]:
+              y, x = cy+a1, cx+b1
+              for label, kind, qq in [("카페","search/keyword",{"query":"카페"}),("CE7","search/category",{"category_group_code":"CE7"}),("빵집","search/keyword",{"query":"빵집"})]:
+                  rows=[]; total=0
+                  for page in (1,2,3):
+                      d = get(kind, dict(qq, x=x, y=y, radius=sub, sort="distance", size=15, page=page)); rows += d["documents"]; total=d["meta"]["total_count"]
+                      if d["meta"]["is_end"]: break
+                  far = max((int(r["distance"]) for r in rows), default=0)
+                  hit = any(r["id"]==b["id"] for r in rows)
+                  print(f"center({y:.4f},{x:.4f}) {label}: total {total}, got {len(rows)} far {far}m, BB dist {round(hv(y,x,float(b['y']),float(b['x'])))}m, BB found={hit}")
+          PY
