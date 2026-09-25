@@ -1,0 +1,21 @@
+name: Live audit (real data)
+on:
+  workflow_dispatch:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/live-audit.yml","tests/live-audit.js"]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm i playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Wait for Pages deploy
+        run: |
+          V=$(grep -o 'data-app-version="[^"]*"' index.html | cut -d'"' -f2)
+          for i in $(seq 1 30); do curl -fsS "https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/?t=$(date +%s)" | grep -q "$V" && break; sleep 10; done
+      - run: node tests/live-audit.js > audit.txt 2>&1 || true
+      - run: cat audit.txt
