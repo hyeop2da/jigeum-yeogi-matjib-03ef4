@@ -188,13 +188,13 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   const r=await pg.evaluate(()=>{const R=window.__jy.state.ranked;return {n:R.length,bad:R.filter(p=>!p.__qHit).map(p=>p.place_name+'|'+p.category_name+'|'+p.__menu)}});
   ok('Q1 "돈까스" 검색 → 돈까스 있는 가게만',r.n>0&&r.bad.length===0,r.n+'곳, 무관 '+r.bad.slice(0,3).join(' / '));
   const why=await pg.evaluate(()=>[...document.querySelectorAll('#pickWhy li')].map(l=>l.textContent).join(' / '));
-  ok('Q2 추천 이유에 "메뉴판에 돈까스"',/메뉴판에 “돈까스”/.test(why),why.slice(0,80));
+  ok('Q2 추천 이유에 "대표 메뉴에 돈까스"',/대표 메뉴에 “돈까스”|메뉴판에 “돈까스”/.test(why),why.slice(0,80));
   await pg.fill('#query','맛집');await pg.press('#query','Enter');await settle(pg);
   ok('Q3 "맛집"은 메뉴로 거르지 않음',await pg.evaluate(()=>window.__jy.state.ranked.length>0&&window.__jy.state.ranked.every(p=>p.__qHit===undefined)));
   await pg.fill('#query','돈가스');await pg.press('#query','Enter');await settle(pg);
   ok('Q4 "돈가스"(다른 표기)도 같은 결과',await pg.evaluate(()=>window.__jy.state.ranked.length>0&&window.__jy.state.ranked.every(p=>p.__qHit)));
   await pg.fill('#query','xyz없는메뉴');await pg.press('#query','Enter');await settle(pg);
-  ok('Q5 없는 메뉴 → 안내 문구',/찾지 못/.test(await pg.evaluate(()=>(document.querySelector('#list .empty')||{}).textContent||'')));
+  ok('Q5 없는 메뉴 → "찾지 못했습니다" 안내',/xyz없는메뉴.*찾지 못/.test(await pg.evaluate(()=>(document.querySelector('#list .empty')||{}).textContent||'')));
   // 내일 기준 표시 (19:39 점심 = 내일 점심)
   const st=await pg.evaluate(()=>{const J=window.__jy,dk=d=>(d.getMonth()+1)+'/'+d.getDate(),add=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d};
     const mk=f=>({days:[-1,0,1,2,3,4,5,6].map(i=>f(i,dk(add(i))))});

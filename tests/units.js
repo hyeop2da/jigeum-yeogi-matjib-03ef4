@@ -183,5 +183,8 @@ const nowD=new Date();const offToday={days:[-1,0,1,2,3,4,5,6].map(i=>{const d=ad
 const openAll={days:[-1,0,1,2,3,4,5,6].map(i=>{const d=add(nowD,i);return {d:dk(d),h:'00:00~24:00'}})};
 const sOpen=S({__hours:openAll}), sOff=S({__hours:offToday});
 t('휴무는 살짝만 감점(0~6점)',sOpen-sOff>=0&&sOpen-sOff<=6,(sOpen-sOff).toFixed(1));
+
+const QS=(o)=>J.scorePlace(Object.assign({id:'q',place_name:'가게',category_name:'음식점 > 한식',category_group_code:'FD6',distance:300,__rating:4.5,__ratingCount:100,__reviewCount:10,__hours:null,__qHit:true},o),'냉면').score;
+t('검색 순위: 냉면집(이름) > 대표 메뉴 냉면 > 곁들이 냉면',QS({__qText:true})>QS({__qMenu:true,__qMain:true})&&QS({__qMenu:true,__qMain:true})>QS({__qMenu:true,__qMain:false}));
 Object.assign(st,keepS);
 return R;};

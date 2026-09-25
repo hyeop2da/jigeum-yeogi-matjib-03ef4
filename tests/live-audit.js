@@ -28,3 +28,4 @@ const QUERIES=(process.env.QUERIES||'돈까스,짬뽕,파스타,김밥,초밥,�
  }
  await b.close();
 })();
+// run 1790335576
