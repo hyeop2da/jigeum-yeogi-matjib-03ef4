@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-chipaudit2">
+<body data-app-version="2026-09-25-nogem">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -576,8 +576,6 @@ const MIN_RATING=3.7;
       const m=20, C=4.0;
       s=((v*R+m*C)/(v+m)-3.6)*50;
       if(v>=300&&R>=4.2) badges.push(['gold','🏆 동네 대표 맛집']);
-      // 숨은 맛집: 아직 덜 알려졌지만(평가 60명 미만) 만족도가 높은 곳. 단, 몇 명뿐인 5점은 우연일 수 있어 10명 이상부터
-      else if(v>=10&&v<60&&R>=4.5) badges.push(['green','🌱 숨은 맛집']);
       else if(v>=100) badges.push(['blue','✅ 평가 '+v.toLocaleString()+'명 검증']);
       plus.push('⭐ 카카오 평점 '+R.toFixed(1)+' · '+(v?v.toLocaleString()+'명 평가':'평가 적음')+(v>=100?' (믿을 만한 점수)':''));
     }else if(Number(p.__reviewCount||0)>=BLOG_MIN){
