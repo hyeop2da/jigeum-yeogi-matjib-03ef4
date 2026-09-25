@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-guest">
+<body data-app-version="2026-09-25-guestwhy">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -521,6 +521,21 @@ const MIN_RATING=3.7;
     }catch(e){}
   }
 
+  // 손님 접대 사유: 어떤 메뉴라서 손님 자리에 맞는지 구체적으로
+  const GUEST_WHY=[
+    [/한정식|코스/,'코스로 차려 나와 격식 있는 자리에 좋아요'],
+    [/일식|초밥/,'깔끔하고 정갈해 격식 있는 자리에 좋아요'],
+    [/^(회|횟집)$/,'제주 생선회라 외부 손님이 특히 좋아해요'],
+    [/향토|갈치|옥돔|전복|흑돼지/,'제주 대표 향토 메뉴라 외부 손님이 좋아해요'],
+    [/해물/,'제주 해산물 요리라 외부 손님이 좋아해요'],
+    [/샤브/,'각자 덜어 먹어 깔끔하고 부담 없어요'],
+    [/소고기|한우/,'격식 있는 고기 요리라 접대에 무난해요']
+  ];
+  function guestReason(kw,sit){
+    const w=GUEST_WHY.find(([re])=>re.test(kw));
+    return sit.label.split(' ')[0]+' '+kw+' · '+(w?w[1]:sit.why);
+  }
+
   // ── 점수: 평가 인원수로 보정한 신뢰 점수 + 상황·거리·날씨·최근 방문 ──
   function scorePlace(p,typedQuery){
     const plus=[], minus=[], badges=[];
@@ -557,8 +572,10 @@ const MIN_RATING=3.7;
       if(list.some(k=>text.includes(k))){s+=12;plus.push((dinner?w.why.replace('가볍게','시원하게'):w.why)+' → '+menuLabel(p));}
     }
     const sit=SITUATIONS[state.situation];
-    if(sit.kw.some(k=>text.includes(k))){s+=sit.formal?28:14;plus.push(sit.label.split(' ')[0]+' '+sit.why);}
-    else if(sit.formal) s-=8;
+    const hitKw=sit.kw.find(k=>text.includes(k));
+    if(hitKw){s+=sit.formal?28:14;plus.push(sit.formal?guestReason(hitKw,sit):sit.label.split(' ')[0]+' '+sit.why);}
+    else if(sit.formal){s-=8;minus.push('접대 단골 메뉴(한정식·일식·회·향토음식 등)는 아니에요');}
+    if(sit.formal&&isFranchise(p)) minus.push('프랜차이즈라 손님 자리엔 격식이 덜해요');
     const v=Number(p.__ratingCount||0), R=Number(p.__rating||4);
     if(sit.walkExtra&&!drive) s-=walk*sit.walkExtra;
     if(sit.crowd) s+=Math.min(10,Math.log10(v+1)*4);
