@@ -259,7 +259,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
     const f=cands[0]||FOODS_LUNCH.slice(1).find(f=>f[0]!=='korean'&&f[0]!=='cafe'&&f[3](p))||FOODS.slice(1).find(f=>f[3](p))||FOODS_LUNCH.slice(1).find(f=>f[3](p));
     return f?f[1].replace(/^\S+\s/,''):(isCafe(p)?'카페':'음식점');
   }
-  function catText(p){const a=foodLabelOf(p),b=menuLabel(p);return !b||a.includes(b)?a:a+' · '+b}
+  function catText(p){const a=foodLabelOf(p),b=menuLabel(p);return !b||a.includes(b)?a:a==='음식점'?b:a+' · '+b}
 
   // 날씨 반영용 메뉴 성향
   const SOUP=['국밥','해장','국수','칼국수','설렁탕','곰탕','갈비탕','찌개','전골','라멘','라면','우동','쌀국수','짬뽕','수제비','몸국','뚝배기','순대','샤브','탕'];
