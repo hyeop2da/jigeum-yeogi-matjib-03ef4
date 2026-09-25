@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-fast2">
+<body data-app-version="2026-09-25-bakery">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -165,7 +165,7 @@
 
   // 음식 종류: [키, 칩 이름, 카카오 검색어, 카테고리 판별]
   const FOODS_LUNCH=[
-    ['all','🍽️ 전체','음식점',p=>isRestaurant(p)],
+    ['all','🍽️ 전체','음식점',p=>isRestaurant(p)&&!isCafe(p)&&!isSnack(p)],
     ['korean','🍚 한식','한식',p=>/한식/.test(p.category_name)],
     ['soup','🍜 국밥·국수','국밥',p=>/국밥|국수|해장국|설렁탕|곰탕|순대국|칼국수|냉면|국수/.test(textOf(p))],
     ['chinese','🥟 중식','중식',p=>/중식|중국/.test(p.category_name)],
@@ -173,7 +173,7 @@
     ['western','🍝 양식','양식',p=>/양식|이탈리|파스타|피자|스테이크|햄버거|패밀리레스토랑|멕시|프랑스|브런치/.test(p.category_name)],
     ['snack','🍢 분식','분식',p=>/분식|떡볶이|김밥/.test(p.category_name)],
     ['meat','🥩 고기','고기',p=>/육류|고기|구이|곱창|막창|갈비|삼겹|돼지|소고기/.test(p.category_name)],
-    ['cafe','☕ 카페','카페',p=>isCafe(p)],
+    ['cafe','☕ 카페·빵','카페',p=>isCafe(p)||isSnack(p)],
   ];
   // 저녁은 '1차'로 갈 만한 곳 위주
   const FOODS_DINNER=[
@@ -194,6 +194,8 @@
   // 키즈카페·스터디카페처럼 먹으러 가는 곳이 아닌 '카페'는 모든 검색에서 뺀다
   const NOT_EATERY=/키즈|어린이|실내놀이|놀이카페|스터디|독서실|보드카페|보드게임|만화카페|룸카페|멀티방|방탈출|사주카페|VR|PC방/i;
   function isEatery(p){return !NOT_EATERY.test(textOf(p))}
+  // 빵집·도넛·떡집·아이스크림 등 카카오 '음식점 > 간식' 은 식사가 아니라 카페·빵 칩으로 본다
+  function isSnack(p){return /^음식점\s*>\s*간식/.test(String(p.category_name||''))}
   function isCafe(p){return p.category_group_code==='CE7'||/^음식점\s*>\s*(카페|간식\s*>\s*(제과|베이커리|디저트))/.test(String(p.category_name||''))}
   function isBar(p){return /술집|주점|호프|포장마차|이자카야|칵테일|와인바|바\(BAR\)|펍/.test(String(p.category_name||''))}
   // 술집 검색어: [입력 패턴, 카카오 검색어, 세부 종류(가게 이름·분류에서 우선 고름)]
@@ -787,7 +789,7 @@
       // 검색 여러 개를 동시에 보낸다: '바'·'맥주'처럼 짧은 말은 '술집' 결과를, 종류 칩은 업종 검색 결과(한 번에 최대 45곳 한계 보완)를 함께 모은다
       const [main,more,cat]=await Promise.all([
         searchPages(query,opts),
-        drink&&drink.query!=='술집'?searchPages('술집',opts):null,
+        drink&&drink.query!=='술집'?searchPages('술집',opts):(!q&&state.food==='cafe'?searchPages('빵집',opts):null),
         !q?searchPages(state.food==='cafe'?'CE7':'FD6',opts,'categorySearch'):null
       ]);
       if(stale()) return;
