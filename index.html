@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-fast">
+<body data-app-version="2026-09-25-locfix">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -1169,6 +1169,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
   async function findLocation(){
     const q=$('locationQuery').value.trim();
     if(!q){notice('찾을 지역이나 주소를 입력해 주세요.');return;}
+    state.locReq=(state.locReq||0)+1;
     clearNotice(); ensureMap();
     if(!state.ps||!state.geocoder){setTimeout(findLocation,300);return;}
     if(!/\d/.test(q)&&/^[가-힣\s]{2,12}$/.test(q)){
@@ -1194,13 +1195,15 @@ const MIN_RATING=3.7; const RATE_CAP=80;
     if(!navigator.geolocation){useDefaultLocation('위치 기능 미지원');return;}
     $('locState').textContent='현재 위치를 확인하는 중…';
     let got=false;
+    // 위치를 기다리는 사이 사용자가 장소(예: 도청)를 직접 고르면, 늦게 도착한 GPS로 덮어쓰지 않는다
+    const seq=state.locReq=(state.locReq||0)+1;
     // 앱을 처음 열 때 4초 안에 위치가 안 오면 잠시 기본 위치로 보여 주고, 위치가 오면 바로 바꾼다
-    const waitTimer=silent?setTimeout(()=>{if(!got&&state.lat==null){useDefaultLocation('현재 위치 확인 중');}},4000):null;
+    const waitTimer=silent?setTimeout(()=>{if(!got&&state.lat==null&&seq===state.locReq){useDefaultLocation('현재 위치 확인 중');}},4000):null;
     navigator.geolocation.getCurrentPosition(pos=>{
-      got=true; clearTimeout(waitTimer); clearNotice();
+      got=true; clearTimeout(waitTimer); if(seq!==state.locReq) return; clearNotice();
       setSearchCenter(pos.coords.latitude,pos.coords.longitude,'📍 현재 위치 기준');
     },err=>{
-      got=true; clearTimeout(waitTimer);
+      got=true; clearTimeout(waitTimer); if(seq!==state.locReq) return;
       useDefaultLocation(err.code===1?'위치 권한이 꺼져 있어요':'현재 위치를 못 찾았어요');
       if(!silent) notice(err.code===1?'위치 권한이 꺼져 있어 제주도청 기준으로 보여드려요. 휴대폰 설정에서 브라우저 위치 권한을 켜거나 위쪽에서 지역을 검색하세요.':'현재 위치를 가져오지 못해 제주도청 기준으로 보여드려요.');
     },{enableHighAccuracy:!silent,timeout:silent?12000:10000,maximumAge:silent?300000:60000});
