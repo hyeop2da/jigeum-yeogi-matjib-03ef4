@@ -148,6 +148,22 @@ const hc=[
  ['저녁 22시 → 내일 저녁 기준',J.mealOpen(H('11:00~21:00'),'dinner',at(22,0),'all').tomorrow,true],
 ];
 hc.forEach(([n,g,w])=>t('영업시간: '+n,JSON.stringify(g)===JSON.stringify(w),'결과 '+JSON.stringify(g)));
+
+t('넓은 분류: 한식',J.isBroadCat({category_name:'음식점 > 한식'}));
+t('넓은 분류 아님: 삼겹살',!J.isBroadCat({category_name:'음식점 > 한식 > 육류,고기 > 삼겹살'}));
+t('넓은 분류 아님: 이자카야',!J.isBroadCat({category_name:'음식점 > 술집 > 일본식주점'}));
+t('넓은 분류: 호프',J.isBroadCat({category_name:'음식점 > 술집 > 호프,요리주점'}));
+t('넓은 분류 아님: 분식',!J.isBroadCat({category_name:'음식점 > 분식'}));
+t('메뉴 이름은 가게 찾기 아님: 냉면',!J.isNamed({place_name:'냉면입니다 신제주점'},'냉면'));
+t('메뉴 이름은 가게 찾기 아님: 김밥',!J.isNamed({place_name:'김밥천국 연동점'},'김밥'));
+t('메뉴 이름은 가게 찾기 아님: 짬뽕',!J.isNamed({place_name:'짬뽕에취한날'},'짬뽕'));
+t('가게 이름은 찾기: 우진해장국',J.isNamed({place_name:'우진해장국'},'우진해장국'));
+t('저녁 1차 전체: 칼국수집 제외',!J.isDinnerMain({category_name:'음식점 > 한식 > 국수 > 칼국수',place_name:'웅이네보말칼국수',category_group_code:'FD6'}));
+t('저녁 1차 전체: 국밥집은 포함',J.isDinnerMain({category_name:'음식점 > 한식 > 국밥',place_name:'옛날국밥',category_group_code:'FD6'}));
+t('저녁 1차 전체: 구내식당 제외',!J.isDinnerMain({category_name:'음식점 > 구내식당',place_name:'차곡한끼',category_group_code:'FD6'}));
+t('카페 19:40 → 내일 점심 후 기준',J.mealOpen(H('10:00~19:00'),'lunch',at(19,40),'cafe').tomorrow===true);
+t('카페 19:40 내일 영업이면 OK',J.mealOpen(H('10:00~19:00'),'lunch',at(19,40),'cafe').ok===true);
+t('카페 13:00 → 지금 기준',J.mealOpen(H('10:00~19:00'),'lunch',at(13,0),'cafe').now===true);
 // 점수
 const keepS={meal:st.meal,situation:st.situation,radius:st.radius,food:st.food};
 const S=(o,x={})=>{const p=Object.assign({id:String(Math.random()),place_name:'가게',category_name:'음식점 > 한식 > 한정식',category_group_code:'FD6',distance:300,__rating:4.4,__ratingCount:300,__reviewCount:10,__hours:null},o);return J.scorePlace(p,'').score;};

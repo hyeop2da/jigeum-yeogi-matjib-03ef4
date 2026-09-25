@@ -1,12 +1,12 @@
 // 실제 배포된 앱 + 실제 카카오 데이터로 여러 상황의 상위 10곳을 뽑아 사람이 눈으로 점검한다 (GitHub Actions 에서 실행)
 const {chromium}=require('playwright');
 const BASE='https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/?debug=1';
-const LOCS={도청:[33.48892,126.49836]};
+const LOCS={도청:[33.48892,126.49836],서귀포:[33.2496,126.5620]};
 const QUERIES=(process.env.QUERIES||'돈까스,짬뽕,파스타,김밥,초밥,고기국수,순대국,냉면,떡볶이,칼국수,갈비탕,쌀국수,흑돼지,커피,맥주,우진해장국').split(',');
 (async()=>{
  const b=await chromium.launch();
- for(const [time,label] of [['2026-09-28T11:40:00+09:00','월 11:40'],['2026-09-28T19:40:00+09:00','월 19:40']]){
-  const ctx=await b.newContext({viewport:{width:390,height:844},timezoneId:'Asia/Seoul',permissions:['geolocation'],geolocation:{latitude:LOCS.도청[0],longitude:LOCS.도청[1]}});
+ for(const [time,label,loc] of [['2026-09-28T11:40:00+09:00','도청 월 11:40','도청'],['2026-09-28T19:40:00+09:00','도청 월 19:40','도청'],['2026-09-28T12:10:00+09:00','서귀포 월 12:10','서귀포']]){
+  const ctx=await b.newContext({viewport:{width:390,height:844},timezoneId:'Asia/Seoul',permissions:['geolocation'],geolocation:{latitude:LOCS[loc][0],longitude:LOCS[loc][1]}});
   const pg=await ctx.newPage();await pg.clock.setFixedTime(new Date(time));
   const errs=[];pg.on('pageerror',e=>errs.push(e.message));
   await pg.goto(BASE);await pg.waitForTimeout(6000);

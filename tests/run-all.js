@@ -208,6 +208,16 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   ok('Q7 내일 영업시간 모르면 "내일 영업시간 정보 없음"',st.b&&st.b.code==='unknown',JSON.stringify(st.b));
   ok('Q8 내일 영업하면 "내일 점심 영업"',st.c&&st.c.code==='open'&&/내일 점심 영업/.test(st.c.text),JSON.stringify(st.c));
   ok('Q9 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+
+ // ===== 점심 검색에 술집 제외 / 가게 이름 먼 곳 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('12:10')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  await pg.fill('#query','돈까스');await pg.press('#query','Enter');await settle(pg);
+  ok('L1 점심 "돈까스" 결과에 술집 없음',await pg.evaluate(()=>window.__jy.state.ranked.every(p=>!/술집/.test(p.category_name))),await pg.evaluate(()=>window.__jy.state.ranked.filter(p=>/술집/.test(p.category_name)).map(p=>p.place_name).join(',')));
+  await pg.fill('#query','맥주');await pg.press('#query','Enter');await settle(pg);
+  ok('L2 점심이라도 "맥주"는 술집',await pg.evaluate(()=>window.__jy.state.ranked.length>0&&window.__jy.state.ranked.every(p=>/술집/.test(p.category_name))));
+  await pg.click('[data-food="western"]');await settle(pg);
+  ok('L3 점심 양식 칩에 술집 없음',await pg.evaluate(()=>window.__jy.state.ranked.every(p=>!/술집/.test(p.category_name))));
+  ok('L4 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
  await b.close();
  const f=results.filter(r=>r[0]==='FAIL');for(const r of results) console.log(r[0],r[1],r[2]?'· '+r[2]:'');console.log('\n총',results.length,'항목 / 실패',f.length);
 })();

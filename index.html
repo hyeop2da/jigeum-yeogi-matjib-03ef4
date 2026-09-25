@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-qfix">
+<body data-app-version="2026-09-25-live1">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -160,6 +160,10 @@
   const CONFIG=window.APP_CONFIG||{KAKAO_JS_KEY:''};
 // 칩별 보조 검색어 — 칩 이름('고기구이' 등)은 카카오 검색에 거의 안 걸려서 실제 가게 이름에 많이 쓰이는 말로 보완
 // 카카오 분류만으로 종류가 분명한 곳: 이런 가게는 메뉴 한두 개로 다른 칩에 넣지 않는다 (예: 분식집의 돈가스 김밥)
+// 카카오 분류가 넓어(그냥 '한식'·'술집' 등) 무엇을 파는지 모를 때만 메뉴판으로 칩을 정한다
+// (삼겹살집의 냉면, 곱창집의 곱창전골, 이자카야의 나베처럼 곁들이 메뉴로 다른 칩에 들어가지 않게)
+const BROAD_LAST=/^(한식|음식점|술집|호프,요리주점|실내포장마차|퓨전요리|퓨전한식|뷔페|야식|도시락|구내식당|기사식당|푸드코트|기타)$/;
+function isBroadCat(p){const c=String(p.category_name||'');return BROAD_LAST.test(c.split('>').pop().trim())&&!DISTINCT_CAT.test(c);}
 const DISTINCT_CAT=/^음식점 > (분식|중식|양식|일식|치킨|패스트푸드|간식|아시아음식|카페|제과|디저트)/;
 const EXTRA_Q={meat:['삼겹살','흑돼지','갈비','양갈비','곱창','소고기'],blackpork:['근고기','오겹살'],chicken:['닭요리','닭갈비','오리','백숙'],japanese:['횟집','초밥','돈까스','라멘'],western:['파스타','피자'],sea:['회','물회','장어'],soup:['국수','칼국수','냉면'],haejang:['국밥','몸국','콩나물국밥'],jokbal:['보쌈'],stew:['샤브샤브','감자탕','찜'],cafe:['빵집']};
 // 직접 검색어: 같은 음식을 부르는 다른 이름 (돈까스=돈가스=돈카츠)
@@ -209,7 +213,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
     ['chinese','🥟 중식 요리','중식',p=>/중식|중국/.test(p.category_name)],
     ['bar','🍺 2차 술집','술집',p=>isBar(p)]
   ];
-  const NOT_DINNER_MAIN=/분식|김밥|패스트푸드|햄버거|샌드위치|도시락|토스트|제과|베이커리|간식|디저트|아이스크림|죽|샐러드|카페/;
+  const NOT_DINNER_MAIN=/분식|김밥|패스트푸드|햄버거|샌드위치|도시락|토스트|제과|베이커리|간식|디저트|아이스크림|죽|샐러드|카페|국수|칼국수|냉면|밀면|수제비|우동|라멘|돈까스|돈가스|쌀국수|구내식당/;
   function isDinnerMain(p){return isRestaurant(p)&&!isCafe(p)&&!NOT_DINNER_MAIN.test(textOf(p))}
   let FOODS=FOODS_LUNCH, FOOD={};
   function buildFoodMap(){FOOD=Object.fromEntries(FOODS.map(f=>[f[0],{label:f[1],query:f[2],test:f[3]}]))}
@@ -487,8 +491,8 @@ const MIN_RATING=3.7; const RATE_CAP=80;
     const later=LATER_SLOT[food];
     const slot=later||MEAL_SLOT[meal];
     // '지금' 기준: 식사 시간 중이거나, 카페는 11:30 이후, 술집은 18시~새벽 4시
-    const nowMode=later?(food==='cafe'?m>=11*60+30:(m>=18*60||m<4*60)):(m>=slot.from&&m<(meal==='lunch'?15*60:21*60));
-    const lateEnd=later?24*60:meal==='lunch'?15*60:21*60;
+    const nowMode=later?(food==='cafe'?m>=11*60+30&&m<15*60:(m>=18*60||m<4*60)):(m>=slot.from&&m<(meal==='lunch'?15*60:21*60));
+    const lateEnd=food==='bar'?24*60:(food==='cafe'||meal==='lunch')?15*60:21*60;
     if(nowMode){
       const today=hoursOn(hours,now); if(today===null) return null;
       const yest=hoursOn(hours,addDays(now,-1))||[];
@@ -654,8 +658,8 @@ const MIN_RATING=3.7; const RATE_CAP=80;
     else if(mo&&!mo.ok){s-=5;minus.push('⛔ '+(mo.now?(mo.off?'오늘 휴무예요':'지금은 영업 시간이 아니에요'):mo.label+(mo.off?'은 휴무예요':'에 영업하지 않아요')));}
     // 식사 시간 전(아침)·내일 기준일 때는 '지금 영업 중/종료' 대신 그 식사 시간 기준으로 보여 준다
     let status=hoursShort(p,now);
-    const later=!!LATER_SLOT[state.food], nm0=now.getHours()*60+now.getMinutes();
-    const planTomorrow=!later&&nm0>=(state.meal==='dinner'?21:15)*60;
+    const nm0=now.getHours()*60+now.getMinutes();
+    const planTomorrow=state.food!=='bar'&&nm0>=(state.meal==='dinner'&&state.food!=='cafe'?21:15)*60;
     if(mo&&!mo.now&&mo.ok){
       const d=mo.tomorrow?addDays(now,1):now, e=hoursEntry(p.__hours,d);
       status={code:'open',text:(mo.tomorrow?'내일 ':'')+mo.word+' 영업'+(e&&e.h?' · '+e.h.replace('~',' ~ '):'')+(e&&e.b&&e.b.length?' (브레이크 '+e.b.join(', ')+')':'')};
@@ -948,8 +952,11 @@ const MIN_RATING=3.7; const RATE_CAP=80;
   function setBusy(on){document.body.classList.toggle('busy',on)}
   // 가게 이름을 직접 쓴 경우: 이름이 검색어로 시작하면 '찾으신 가게'로 본다 (메가커피 → 메가MGC커피 …)
   function normName(t){return String(t||'').toLowerCase().replace(/mgc|\s|[^0-9a-z가-힣]/g,'')}
-  function isNamed(p,q){const a=normName(p.place_name),b=normName(q);return b.length>=2&&(a.startsWith(b)||b.startsWith(a)&&a.length>=2);}
-  const NAMED_RANGE=3000;
+  // '냉면·김밥·짬뽕'처럼 메뉴 이름을 치면 가게 이름 찾기가 아니다 (냉면입니다·김밥천국이 맨 위로 오지 않게)
+  const MENU_WORDS=new Set(('국밥 국수 고기국수 멸치국수 비빔국수 냉면 물냉면 비빔냉면 밀면 막국수 짬뽕 짜장 짜장면 자장면 탕수육 김밥 떡볶이 라면 라볶이 순대 튀김 만두 돈까스 돈가스 돈카츠 카츠 초밥 스시 회 횟집 물회 우동 라멘 소바 덮밥 파스타 스파게티 피자 햄버거 버거 샌드위치 샐러드 브런치 치킨 통닭 닭강정 닭갈비 찜닭 닭볶음탕 삼계탕 백숙 오리 족발 보쌈 삼겹살 오겹살 흑돼지 근고기 갈비 소갈비 돼지갈비 갈비탕 곰탕 설렁탕 순대국 순댓국 해장국 뼈해장국 감자탕 칼국수 수제비 쌀국수 비빔밥 백반 한정식 정식 샤브샤브 전골 부대찌개 김치찌개 된장찌개 마라탕 양꼬치 곱창 막창 대창 몸국 고사리육개장 육개장 갈치 고등어 옥돔 전복 성게 장어 해물 해물탕 아구찜 커피 카페 빵 빵집 베이커리 디저트 케이크 빙수 도넛 와플').split(' '));
+  function isNamed(p,q){const b=normName(q);if(MENU_WORDS.has(b))return false;const a=normName(p.place_name);return b.length>=2&&(a.startsWith(b)||b.startsWith(a)&&a.length>=2);}
+  // 가게 이름을 치면 조금 멀어도(20km 안) 찾아 준다 (예: 도청에서 우진해장국 3.3km)
+  const NAMED_RANGE=20000;
   const searchMemo=new Map();
   async function search(){
     if(state.lat==null) return;
@@ -1037,6 +1044,8 @@ const MIN_RATING=3.7; const RATE_CAP=80;
         // 주차장·관광지 등 음식점·카페가 아닌 곳은 이름에 '흑돼지·국수' 같은 말이 있어도 뺀다
         if(!(isRestaurant(p)||isCafe(p))||p.category_group_code==='PK6') return false;
         if(drink) return isBar(p);
+        // 점심 추천엔 술집(호프·이자카야 등)은 넣지 않는다 (메뉴에 파스타·짬뽕이 있어도 밤 장사)
+        if(state.meal==='lunch'&&isBar(p)) return false;
         if(q){
           // 이름·분류에 검색어가 있거나, '고기국수'처럼 검색어가 가게 분류(국수)로 끝나면 관련 있는 가게
           if(qTerms) p.__qText=qMatch(textOf(p))||String(p.category_name||'').split(/>|,/).map(x=>x.trim()).some(seg=>seg.length>=2&&qn.endsWith(seg));
@@ -1044,7 +1053,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
         }
         if(food.test(p)) return true;
         // 종류 칩 검색어로 카카오가 돌려준 식당인데 분류가 애매하면(예: '야식') 일단 두고 메뉴로 확인
-        if(p.__kw&&state.food!=='all'&&isRestaurant(p)&&!DISTINCT_CAT.test(String(p.category_name||''))){p.__byMenu=true;return true;}
+        if(p.__kw&&state.food!=='all'&&isRestaurant(p)&&isBroadCat(p)){p.__byMenu=true;return true;}
         return false;
       });
       rows=rows.map(p=>Object.assign({},p,{distance:(p.distance!==undefined&&p.distance!=='')?Number(p.distance):distanceMeters(state.lat,state.lng,Number(p.y),Number(p.x))}))
@@ -1422,7 +1431,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
   document.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>{if(b.dataset.meal===state.meal)return;setMeal(b.dataset.meal);$('query').value='';state.autoExpanded=false;search();});
   $('appVer').textContent='버전 '+(document.body.dataset.appVersion||'');
   // 자동 테스트 전용(주소에 ?debug=1 일 때만): 안쪽 판단 함수를 밖에서 확인할 수 있게
-  if(/[?&]debug=1(&|$)/.test(location.search)) window.__jy={state,FOODS_LUNCH,FOODS_DINNER,isMeatGrill,isSoupPlace,isChicken,isCafe,isBar,isEatery,isFranchise,isDinnerMain,foodLabelOf,catText,kwIn,isNamed,normName,drinkOf,linkName,kakaoWebUrl,kakaoAppPath,mealOpen,openStatus,hoursOn,scorePlace,villageOf,setMeal,DISTINCT_CAT,EXTRA_Q,walkMin,fmtDistance,mealIsTomorrow,guestReason};
+  if(/[?&]debug=1(&|$)/.test(location.search)) window.__jy={state,isBroadCat,FOODS_LUNCH,FOODS_DINNER,isMeatGrill,isSoupPlace,isChicken,isCafe,isBar,isEatery,isFranchise,isDinnerMain,foodLabelOf,catText,kwIn,isNamed,normName,drinkOf,linkName,kakaoWebUrl,kakaoAppPath,mealOpen,openStatus,hoursOn,scorePlace,villageOf,setMeal,DISTINCT_CAT,EXTRA_Q,walkMin,fmtDistance,mealIsTomorrow,guestReason};
   setMeal('lunch');
   renderContext();
   renderKakaoPref();
