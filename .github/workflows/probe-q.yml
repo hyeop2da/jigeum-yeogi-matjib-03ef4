@@ -1,0 +1,47 @@
+name: Probe typed queries (temporary)
+on:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/probe-q.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 - <<'PY'
+          import json, re, urllib.request, urllib.parse
+          from concurrent.futures import ThreadPoolExecutor
+          cfg = open("config.js").read()
+          JS = re.search(r"KAKAO_JS_KEY:\s*'([^']+)'", cfg).group(1)
+          PROXY = re.search(r"KAKAO_PROXY_URL:\s*'([^']+)'", cfg).group(1)
+          O = "https://hyeop2da.github.io"
+          sdk = {"Authorization": "KakaoAK " + JS, "KA": "sdk/4.4.19 os/javascript lang/ko-KR device/Win32 origin/" + urllib.parse.quote(O), "Origin": O, "Referer": O + "/", "User-Agent": "Mozilla/5.0"}
+          X, Y = 126.4984, 33.4889
+          def kw(q):
+              out=[]
+              for page in (1,2,3):
+                  d=json.load(urllib.request.urlopen(urllib.request.Request("https://dapi.kakao.com/v2/local/search/keyword.json?"+urllib.parse.urlencode({"query":q,"x":X,"y":Y,"radius":1000,"sort":"distance","size":15,"page":page}),headers=sdk)))
+                  out+=d["documents"]
+                  if d["meta"]["is_end"]: break
+              return out
+          def rate(p):
+              q=urllib.parse.urlencode({"id":p["id"],"name":p["place_name"],"addr":p.get("road_address_name") or "","x":p["x"],"y":p["y"],"v":"m3"})
+              try: return json.load(urllib.request.urlopen(urllib.request.Request(PROXY+"?"+q,headers={"Origin":O}),timeout=20))
+              except Exception as e: return {}
+          norm=lambda s: re.sub(r"\s","",s)
+          for q in ["돈까스","짬뽕","파스타","김밥","초밥","고기국수","순대국","냉면","떡볶이","칼국수","갈비탕","쌀국수"]:
+              rows=[r for r in kw(q) if r["category_name"].startswith("음식점")]
+              with ThreadPoolExecutor(12) as ex: rs=list(ex.map(rate,rows))
+              syn={"돈까스":["돈까스","돈가스","돈카츠","카츠"],"짬뽕":["짬뽕"],"파스타":["파스타","스파게티"]}.get(q,[q])
+              t=m=n=0;bad=[]
+              for r,d in zip(rows,rs):
+                  txt=norm(r["category_name"]+r["place_name"]); menu=norm(d.get("menu") or "")
+                  if any(s in txt for s in syn): t+=1
+                  elif any(s in menu for s in syn): m+=1
+                  else:
+                      n+=1
+                      if len(bad)<6: bad.append(r["place_name"]+"("+r["category_name"].split(">")[-1].strip()+"|메뉴:"+(d.get("menu") or "없음")[:40]+")")
+              print(f"{q}: 총 {len(rows)} · 이름/분류 일치 {t} · 메뉴에 있음 {m} · 관련 없어 보임 {n}")
+              for x in bad: print("   ", x)
+          PY
