@@ -16,7 +16,7 @@ async function newPage(b,{time,geo='grant',geoDelay=0,rateMode='ok',routeMode='f
   if(u.host==='localhost:9999'){const f=path.join(ROOT,u.pathname==='/'?'index.html':u.pathname);return fs.existsSync(f)?r.fulfill({body:fs.readFileSync(f),contentType:f.endsWith('.js')?'text/javascript':'text/html'}):r.fulfill({status:404});}
   if(u.host==='dapi.kakao.com')return r.fulfill({body:fs.readFileSync(__dirname+'/mock-kakao.js'),contentType:'text/javascript'});
   if(u.host.includes('vercel.app')){if(rateMode==='down')return r.fulfill({status:500,body:'x'});const id=+u.searchParams.get('id');
-    return r.fulfill({body:JSON.stringify({rating:id%13===0?null:3.5+(id%15)/10,ratingCount:id%13===0?0:5+id%400,reviewCount:id%7*20,hours:hoursFor(id,base),menu:'대표메뉴'}),contentType:'application/json',headers:{'access-control-allow-origin':'*'}});}
+    return r.fulfill({body:JSON.stringify({rating:id%13===0?null:3.5+(id%15)/10,ratingCount:id%13===0?0:5+id%400,reviewCount:id%7*20,hours:hoursFor(id,base),menu:id%4===0?'등심돈까스,김밥,라면':'백반,찌개'}),contentType:'application/json',headers:{'access-control-allow-origin':'*'}});}
   if(u.host==='routing.openstreetmap.de')return routeMode==='fail'?r.abort():r.fulfill({body:'{}',contentType:'application/json'});
   if(u.host==='api.open-meteo.com')return r.fulfill({body:JSON.stringify({current:{temperature_2m:24,precipitation:0,weather_code:2}}),contentType:'application/json'});
   return r.abort();});
@@ -181,6 +181,33 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
  // 앱 가로 넘침 (좁은 폰 320px)
  {const {pg,errs,ctx}=await newPage(b,{time:T('12:10')});await pg.setViewportSize({width:320,height:640});await pg.goto('http://localhost:9999/');await pg.waitForTimeout(2500);await settle(pg);
   ok('Z7 320px 폰에서 가로 넘침 없음',await pg.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),await pg.evaluate(()=>document.documentElement.scrollWidth));await ctx.close();}
+
+ // ===== 직접 검색어 관련성·내일 기준 표시 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('19:39')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  await pg.fill('#query','돈까스');await pg.press('#query','Enter');await settle(pg);
+  const r=await pg.evaluate(()=>{const R=window.__jy.state.ranked;return {n:R.length,bad:R.filter(p=>!p.__qHit).map(p=>p.place_name+'|'+p.category_name+'|'+p.__menu)}});
+  ok('Q1 "돈까스" 검색 → 돈까스 있는 가게만',r.n>0&&r.bad.length===0,r.n+'곳, 무관 '+r.bad.slice(0,3).join(' / '));
+  const why=await pg.evaluate(()=>[...document.querySelectorAll('#pickWhy li')].map(l=>l.textContent).join(' / '));
+  ok('Q2 추천 이유에 "메뉴판에 돈까스"',/메뉴판에 “돈까스”/.test(why),why.slice(0,80));
+  await pg.fill('#query','맛집');await pg.press('#query','Enter');await settle(pg);
+  ok('Q3 "맛집"은 메뉴로 거르지 않음',await pg.evaluate(()=>window.__jy.state.ranked.length>0&&window.__jy.state.ranked.every(p=>p.__qHit===undefined)));
+  await pg.fill('#query','돈가스');await pg.press('#query','Enter');await settle(pg);
+  ok('Q4 "돈가스"(다른 표기)도 같은 결과',await pg.evaluate(()=>window.__jy.state.ranked.length>0&&window.__jy.state.ranked.every(p=>p.__qHit)));
+  await pg.fill('#query','xyz없는메뉴');await pg.press('#query','Enter');await settle(pg);
+  ok('Q5 없는 메뉴 → 안내 문구',/찾지 못/.test(await pg.evaluate(()=>(document.querySelector('#list .empty')||{}).textContent||'')));
+  // 내일 기준 표시 (19:39 점심 = 내일 점심)
+  const st=await pg.evaluate(()=>{const J=window.__jy,dk=d=>(d.getMonth()+1)+'/'+d.getDate(),add=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d};
+    const mk=f=>({days:[-1,0,1,2,3,4,5,6].map(i=>f(i,dk(add(i))))});
+    const P=h=>({id:'5',place_name:'테스트',category_name:'음식점 > 분식',category_group_code:'FD6',distance:200,__rating:4.5,__ratingCount:30,__reviewCount:0,__hours:h});
+    J.state.food='all';J.state.meal='lunch';
+    const a=J.scorePlace(P(mk((i,k)=>i===1?{d:k,off:1}:{d:k,h:'08:00~20:00'})),'').status;
+    const b=J.scorePlace(P(mk((i,k)=>i===1||i===2?null:{d:k,h:'08:30~17:30'}).days?{days:mk((i,k)=>({d:k,h:'08:30~17:30'})).days.filter((x,i)=>i!==2&&i!==3)}:null),'').status;
+    const c=J.scorePlace(P(mk((i,k)=>({d:k,h:'11:00~21:00'}))),'').status;
+    return {a,b,c};});
+  ok('Q6 지금 영업 중이어도 내일 휴무면 🔴 내일 휴무로',st.a&&st.a.code==='off'&&/내일/.test(st.a.text),JSON.stringify(st.a));
+  ok('Q7 내일 영업시간 모르면 "내일 영업시간 정보 없음"',st.b&&st.b.code==='unknown',JSON.stringify(st.b));
+  ok('Q8 내일 영업하면 "내일 점심 영업"',st.c&&st.c.code==='open'&&/내일 점심 영업/.test(st.c.text),JSON.stringify(st.c));
+  ok('Q9 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
  await b.close();
  const f=results.filter(r=>r[0]==='FAIL');for(const r of results) console.log(r[0],r[1],r[2]?'· '+r[2]:'');console.log('\n총',results.length,'항목 / 실패',f.length);
 })();
