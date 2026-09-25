@@ -1,0 +1,48 @@
+name: Probe a missing place (temporary)
+
+on:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/probe-place.yml"]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Why is 김녕빵집 missing?
+        run: |
+          python3 - <<'PY'
+          import json, re, urllib.request, urllib.parse
+          JS = re.search(r"KAKAO_JS_KEY:\s*'([^']+)'", open("config.js").read()).group(1)
+          PROXY = re.search(r"KAKAO_PROXY_URL:\s*'([^']+)'", open("config.js").read()).group(1)
+          O = "https://hyeop2da.github.io"
+          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128 Safari/537.36"
+          def get(url, h=None):
+              hh = {"User-Agent": UA, "Accept": "application/json"}; hh.update(h or {})
+              try:
+                  r = urllib.request.urlopen(urllib.request.Request(url, headers=hh), timeout=20); return r.status, r.read().decode()
+              except urllib.error.HTTPError as e: return e.code, e.read().decode()[:300]
+          s, t = get("https://search.map.kakao.com/mapsearch/map.daum?" + urllib.parse.urlencode({"q": "김녕빵집", "page": 1}), {"Referer": "https://map.kakao.com/"})
+          row = (json.loads(t).get("place") or [{}])[0]
+          pid, lat, lon = str(row.get("confirmid")), float(row.get("lat")), float(row.get("lon"))
+          print("mapsearch:", pid, row.get("name"), row.get("cate_name_depth1"), ">", row.get("cate_name_depth2"), ">", row.get("cate_name_depth3"), "rating", row.get("rating_average"), row.get("rating_count"), "addr", row.get("new_address") or row.get("address"), lat, lon)
+          sdk = {"Authorization": "KakaoAK " + JS, "KA": "sdk/4.4.19 os/javascript lang/ko-KR device/Win32 origin/" + urllib.parse.quote(O), "Origin": O, "Referer": O + "/"}
+          base = "https://dapi.kakao.com/v2/local/search/"
+          def local(kind, **q):
+              q.update({"x": lon, "y": lat, "radius": 1000, "sort": "distance", "size": 15})
+              rows = []
+              for page in (1, 2, 3):
+                  q["page"] = page
+                  s, t = get(base + kind + ".json?" + urllib.parse.urlencode(q), sdk)
+                  if s != 200: print("  ", kind, q.get("query") or q.get("category_group_code"), "HTTP", s, t[:160]); return rows
+                  d = json.loads(t); rows += d.get("documents", [])
+                  if d.get("meta", {}).get("is_end"): break
+              return rows
+          for label, kind, q in [("keyword 음식점", "keyword", {"query": "음식점"}), ("category FD6", "category", {"category_group_code": "FD6"}), ("category CE7", "category", {"category_group_code": "CE7"}), ("keyword 빵집", "keyword", {"query": "빵집"})]:
+              rows = local(kind, **q)
+              hit = [r for r in rows if r.get("id") == pid]
+              print(f"{label}: {len(rows)} rows, 김녕빵집 포함={bool(hit)}", (hit[0].get("category_group_code"), hit[0].get("category_name"), hit[0].get("distance")) if hit else "", "| 첫 3곳:", [(r.get("place_name"), r.get("category_group_code"), r.get("distance")) for r in rows[:3]])
+          s, t = get(PROXY + "?" + urllib.parse.urlencode({"id": pid, "name": row.get("name"), "addr": row.get("new_address") or row.get("address") or "", "x": lon, "y": lat, "v": "probe"}), {"Origin": O})
+          print("relay:", s, t[:600])
+          PY
