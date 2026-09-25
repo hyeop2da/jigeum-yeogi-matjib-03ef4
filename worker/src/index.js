@@ -1,4 +1,4 @@
-const VERSION = "2026-09-25-panel-v2";
+const VERSION = "2026-09-25-menu-v3";
 const CACHE = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 const KAKAO_SEARCH_URL = "https://search.map.kakao.com/mapsearch/map.daum";
@@ -211,10 +211,18 @@ async function fetchHours(place) {
     const score = data?.kakaomap_review?.score_set;
     const ratingCount = numberOrNull(score?.review_count);
     const avg = numberOrNull(score?.average_score);
+    // 대표 메뉴 이름(분류가 '야식'처럼 애매한 가게를 메뉴로 알아보기 위해)
+    const m = data?.menu || {};
+    const menuItems = [].concat(
+      Array.isArray(m.menus) ? m.menus : (m.menus?.items || []),
+      m.yogiyo_menus?.items || []
+    );
+    const menu = [...new Set(menuItems.map(x => String(x?.name || "").trim()).filter(Boolean))].slice(0, 10).join(",").slice(0, 200);
     const panel = {
       rating: ratingCount && avg ? avg : null,
       ratingCount: ratingCount || 0,
-      blogCount: numberOrNull(data?.blog_review?.review_count) || 0
+      blogCount: numberOrNull(data?.blog_review?.review_count) || 0,
+      menu
     };
     const oh = data?.open_hours;
     const periods = oh?.week_from_today?.week_periods;
@@ -252,7 +260,7 @@ async function enrichOne(place, diagnostics) {
     const hoursResult = await fetchHours(place);
     const pn = hoursResult.panel;
     const value = pn && (pn.rating !== null || pn.blogCount)
-      ? { id: place.id, rating: pn.rating, reviewCount: pn.blogCount, ratingCount: pn.ratingCount, matched: true, source: "kakaomap-panel" }
+      ? { id: place.id, rating: pn.rating, reviewCount: pn.blogCount, ratingCount: pn.ratingCount, menu: pn.menu || "", matched: true, source: "kakaomap-panel" }
       : await fetchKakaoSearch(place, diagnostics);
     if (pn && pn.rating !== null && value.source === "kakaomap-panel") diagnostics.rated++;
     value.hours = hoursResult.hours;
