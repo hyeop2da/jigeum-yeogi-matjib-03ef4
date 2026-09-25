@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-village">
+<body data-app-version="2026-09-25-blog">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -157,6 +157,7 @@
   const CONFIG=window.APP_CONFIG||{KAKAO_JS_KEY:''};
   const MIN_RATING=3.7;
   const MAX_SHOW=30;
+  const BLOG_MIN=30; // 카카오 평점이 없어도 블로그 후기가 이만큼 있으면 후보에 넣는다
   const DEFAULT_LOCATION={lat:33.48892,lng:126.49836,label:'제주도청'};
   const state={meal:'lunch',lat:null,startName:null,lng:null,radius:1000,situation:'team',food:'all',results:[],ranked:[],pickIdx:0,map:null,ps:null,myMarker:null,markers:[],pickOverlay:null,weather:null,autoExpanded:false,radiusLocked:false,gen:0,region:null,ratingsDown:false,searchedCount:0};
   // 반경은 '길 따라 걷는 거리' 기준 (분당 67m = 시속 4km)
@@ -454,7 +455,7 @@
   }
 
   // ── 평점 캐시 (이 기기, 24시간) ──
-  const RATING_KEY='jy-rating-cache-v2', RATING_TTL=24*60*60*1000;
+  const RATING_KEY='jy-rating-cache-v3', RATING_TTL=24*60*60*1000;
   function loadRatingCache(){const v=store(RATING_KEY,{});return v&&typeof v==='object'?v:{}}
   function saveRatingCache(cache){
     const now=Date.now();
@@ -495,9 +496,16 @@
       else if(v<60&&R>=4.5) badges.push(['green','🌱 숨은 맛집']);
       else if(v>=100) badges.push(['blue','✅ 평가 '+v.toLocaleString()+'명 검증']);
       plus.push('⭐ 카카오 평점 '+R.toFixed(1)+' · '+(v?v.toLocaleString()+'명 평가':'평가 적음')+(v>=100?' (믿을 만한 점수)':''));
+    }else if(Number(p.__reviewCount||0)>=BLOG_MIN){
+      // 카카오 평점은 없지만 블로그에서 유명한 곳: 후기 수로 인기 점수 (평점 확실한 맛집보다 과하게 앞서지 않게 4.4 상당까지)
+      const b=Number(p.__reviewCount);
+      s=(3.9+Math.min(0.5,Math.log10(b)/6)-3.6)*50;
+      if(b>=500) badges.push(['blue','📝 블로그 인기']);
+      plus.push('📝 블로그 후기 '+b.toLocaleString()+'개 · 카카오 평점은 아직 없어요');
     }else{
       plus.push('ℹ️ 평점 정보 없음 · 거리와 조건으로 추천');
     }
+    if(p.__rating!=null&&Number(p.__reviewCount||0)>=1000){s+=4;badges.push(['blue','📝 블로그 인기']);}
     const drive=!!p.__drive, driveMin=Math.max(2,Math.round(Number(p.distance||0)/500)+2);
     if(!drive) s-=walk*1.1; else s-=driveMin*0.3;
     const text=textOf(p);
@@ -612,7 +620,7 @@
     list.innerHTML=top.map((p,i)=>{
       const s=p.__s;
       const divider=i===state.openCount?'<div class="closedhead">🔴 식사 시간에 문 닫는 곳 · 참고용</div>':'';
-      const rating=p.__rating!=null?'⭐ '+p.__rating.toFixed(1)+' · 평가 '+Number(p.__ratingCount||0).toLocaleString()+'명 · 후기 '+Number(p.__reviewCount||0).toLocaleString()+'개':'평점 정보 없음';
+      const rating=p.__rating!=null?'⭐ '+p.__rating.toFixed(1)+' · 평가 '+Number(p.__ratingCount||0).toLocaleString()+'명 · 블로그 '+Number(p.__reviewCount||0).toLocaleString()+'개':(Number(p.__reviewCount||0)>=BLOG_MIN?'📝 블로그 후기 '+Number(p.__reviewCount).toLocaleString()+'개 · 카카오 평점 없음':'평점 정보 없음');
       return divider+'<article class="card'+(i===state.pickIdx?' is-pick':'')+(i>=state.openCount?' closedcard':'')+'" data-index="'+i+'">'+
         (s.visit?'<div class="mini" style="margin:0 0 6px"><span class="b red">🔁 '+escapeHtml(whenText(s.visit.ts))+' 방문</span></div>':'')+
         '<div class="row"><div class="name"><span class="rank">'+(i<state.openCount?(i+1):'·')+'</span>'+escapeHtml(p.place_name)+'</div><div class="distance">'+(s.drive?'🚗 약 '+s.driveMin+'분 · '+fmtDistance(p.distance):'🚶'+(p.__est?'약 ':'')+s.walk+'분 · '+distText(p))+'</div></div>'+
@@ -772,7 +780,7 @@
       await mapLimit(todo,32,async p=>{
         asked++;
         try{
-          const q=new URLSearchParams({id:p.id,name:p.place_name,addr:p.road_address_name||p.address_name||'',x:p.x,y:p.y,v:'h1'});
+          const q=new URLSearchParams({id:p.id,name:p.place_name,addr:p.road_address_name||p.address_name||'',x:p.x,y:p.y,v:'p2'});
           const r=await fetch(url+'?'+q.toString(),{signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
           if(!r.ok) throw new Error('HTTP '+r.status);
           const d=await r.json();
@@ -882,7 +890,8 @@
           p.__hours=r?r.hours:null;
           // 평점 서버가 멈추면 평점 없이도 추천한다
           if(down) return p.__rating==null||p.__rating>=MIN_RATING;
-          return p.__rating!=null&&p.__rating>=MIN_RATING;
+          if(p.__rating==null) return Number(p.__reviewCount||0)>=BLOG_MIN;
+          return p.__rating>=MIN_RATING;
         });
         updateVillages(); renderChips();
         if(early){rankResults(); renderContext(); renderList(); drawMarkers(); renderPick(); $('summary').textContent+=' · ⏳ 평점 더 확인 중…'; return false;}

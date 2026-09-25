@@ -1,4 +1,4 @@
-const VERSION = "2026-09-25-hours-v1";
+const VERSION = "2026-09-25-panel-v2";
 const CACHE = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 const KAKAO_SEARCH_URL = "https://search.map.kakao.com/mapsearch/map.daum";
@@ -191,8 +191,9 @@ function hhmmRange(text) {
   const m = String(text || "").match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
   return m ? `${m[1]}~${m[2]}` : null;
 }
+// 가게 상세 한 번으로 평점(카카오맵 별점)·블로그 후기 수·영업시간을 모두 받는다
 async function fetchHours(place) {
-  if (!/^\d+$/.test(place.id)) return { hours: null, failed: false };
+  if (!/^\d+$/.test(place.id)) return { hours: null, failed: false, panel: null };
   try {
     const response = await fetch(KAKAO_PANEL_URL + place.id, {
       headers: {
@@ -205,11 +206,19 @@ async function fetchHours(place) {
       },
       signal: AbortSignal.timeout(8000)
     });
-    if (!response.ok) return { hours: null, failed: response.status >= 500 || response.status === 429 };
+    if (!response.ok) return { hours: null, failed: response.status >= 500 || response.status === 429, panel: null };
     const data = await response.json();
+    const score = data?.kakaomap_review?.score_set;
+    const ratingCount = numberOrNull(score?.review_count);
+    const avg = numberOrNull(score?.average_score);
+    const panel = {
+      rating: ratingCount && avg ? avg : null,
+      ratingCount: ratingCount || 0,
+      blogCount: numberOrNull(data?.blog_review?.review_count) || 0
+    };
     const oh = data?.open_hours;
     const periods = oh?.week_from_today?.week_periods;
-    if (!Array.isArray(periods)) return { hours: null, failed: false };
+    if (!Array.isArray(periods)) return { hours: null, failed: false, panel };
     const days = [];
     for (const period of periods) {
       for (const day of period?.days || []) {
@@ -226,11 +235,11 @@ async function fetchHours(place) {
         days.push(item);
       }
     }
-    if (!days.length) return { hours: null, failed: false };
+    if (!days.length) return { hours: null, failed: false, panel };
     const off = oh?.week_from_today?.days_off_desc || oh?.headline_addition?.days_off_desc || null;
-    return { hours: off ? { days, off: String(off).slice(0, 40) } : { days }, failed: false };
+    return { hours: off ? { days, off: String(off).slice(0, 40) } : { days }, failed: false, panel };
   } catch (error) {
-    return { hours: null, failed: true };
+    return { hours: null, failed: true, panel: null };
   }
 }
 
@@ -239,7 +248,13 @@ async function enrichOne(place, diagnostics) {
   if (cached && cached.expires > Date.now()) return cached.value;
   const errorsBefore = diagnostics.httpErrors + diagnostics.parseErrors;
   try {
-    const [value, hoursResult] = await Promise.all([fetchKakaoSearch(place, diagnostics), fetchHours(place)]);
+    // 가게 상세를 먼저 보고, 거기서 평점을 못 얻을 때만 검색으로 찾아 맞춘다 (카카오 호출 1번으로 끝나는 경우가 대부분)
+    const hoursResult = await fetchHours(place);
+    const pn = hoursResult.panel;
+    const value = pn && (pn.rating !== null || pn.blogCount)
+      ? { id: place.id, rating: pn.rating, reviewCount: pn.blogCount, ratingCount: pn.ratingCount, matched: true, source: "kakaomap-panel" }
+      : await fetchKakaoSearch(place, diagnostics);
+    if (pn && pn.rating !== null && value.source === "kakaomap-panel") diagnostics.rated++;
     value.hours = hoursResult.hours;
     if (hoursResult.failed) value.hoursRetry = true;
     // 카카오 일시 오류로 못 찾은 결과는 오래 보관하지 않는다.
