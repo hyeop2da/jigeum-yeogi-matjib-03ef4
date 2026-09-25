@@ -37,28 +37,16 @@ jobs:
                   for i, v in enumerate(obj[:3]):
                       out += hourish(v, f"{path}[{i}]")
               return out
-          for pid, name in [("11547525", "우진해장국")]:
-              print("=== 1) mapsearch row ===")
-              s, t = get("https://search.map.kakao.com/mapsearch/map.daum?" + urllib.parse.urlencode({"q": name, "page": 1}))
-              print("status", s)
+          s, t = get("https://search.map.kakao.com/mapsearch/map.daum?" + urllib.parse.urlencode({"q": "제주시 노형동 맛집", "page": 1}))
+          ids = [str(r.get("confirmid")) for r in (json.loads(t).get("place") or [])][:6] + ["11547525"]
+          H = {"pf": "web", "appVersion": "6.6.0", "Origin": "https://place.map.kakao.com", "Referer": "https://place.map.kakao.com/"}
+          for pid in ids:
+              s, t = get(f"https://place-api.map.kakao.com/places/panel3/{pid}", H)
               try:
-                  rows = json.loads(t).get("place") or []
-                  row = next((r for r in rows if str(r.get("confirmid")) == pid), rows[0] if rows else {})
-                  print("keys:", sorted(row.keys()))
-                  for p, v in hourish(row): print("  ", p, "=", v)
+                  d = json.loads(t)
+                  name = (d.get("summary") or {}).get("name")
+                  print("=====", pid, name, "status", s)
+                  print(json.dumps(d.get("open_hours"), ensure_ascii=False)[:2500])
               except Exception as e:
-                  print("parse fail", e, t[:200])
-              for label, url, hdr in [
-                  ("2) place main/v", f"https://place.map.kakao.com/main/v/{pid}", {}),
-                  ("3) place-api panel3", f"https://place-api.map.kakao.com/places/panel3/{pid}", {"pf": "web", "appVersion": "6.6.0", "Origin": "https://place.map.kakao.com", "Referer": "https://place.map.kakao.com/"}),
-              ]:
-                  print("===", label, "===")
-                  s, t = get(url, hdr)
-                  print("status", s, "len", len(t))
-                  try:
-                      d = json.loads(t)
-                      print("top keys:", sorted(d.keys())[:40] if isinstance(d, dict) else type(d))
-                      for p, v in hourish(d)[:25]: print("  ", p, "=", v)
-                  except Exception:
-                      print("not json:", t[:200])
+                  print("=====", pid, "status", s, "fail", t[:200])
           PY
