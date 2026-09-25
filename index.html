@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-soupfix">
+<body data-app-version="2026-09-25-chipaudit">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -175,12 +175,13 @@ const MIN_RATING=3.7;
     ['all','🍽️ 전체','음식점',p=>isRestaurant(p)&&!isCafe(p)&&!isSnack(p)],
     ['korean','🍚 한식','한식',p=>/한식/.test(p.category_name)],
     ['soup','🍜 국밥·국수','국밥',p=>/국밥|국수|해장국|설렁탕|곰탕|순대국|칼국수|냉면|국수/.test(textOf(p))],
-    ['chinese','🥟 중식','중식',p=>/중식|중국/.test(p.category_name)],
+    ['chinese','🥟 중식','중식',p=>/중식|중국/.test(p.category_name)&&!/양꼬치/.test(p.category_name)],
     // 일식과 동네 횟집(카카오: 한식 > 해물,생선 > 회)을 한 칩으로
     ['japanese','🍣 일식·회','일식',p=>/일식|일본|초밥|돈까스|돈가스|라멘|우동|해물,생선\s*>\s*회|횟집|물회/.test(String(p.category_name||''))],
     ['western','🍝 양식','양식',p=>/양식|이탈리|파스타|피자|스테이크|햄버거|패밀리레스토랑|멕시|프랑스|브런치/.test(p.category_name)],
     ['snack','🍢 분식','분식',p=>/분식|떡볶이|김밥/.test(p.category_name)],
-    ['cafe','☕ 카페·빵','카페',p=>isCafe(p)||isSnack(p)],
+    // 카페·빵: 간식 중 빵·떡·디저트류만 (닭강정·타코야끼·토스트·꼬치는 빼기)
+    ['cafe','☕ 카페·빵','카페',p=>isCafe(p)||(isSnack(p)&&/제과|베이커리|떡|한과|아이스크림|도넛|초콜릿|디저트|와플|마카롱|케이크|빙수/.test(String(p.category_name||'')))],
     // 전날 회식 다음 날 점심: 해장국·국밥에 제주식 몸국·고사리육개장·각재기국, 짬뽕·쌀국수까지
     ['haejang','🥣 해장','해장국',p=>isRestaurant(p)&&/해장|국밥|순대국|콩나물|북엇|북어|황태|복국|복어|선지|내장탕|우거지|올갱이|재첩|갈비탕|곰탕|설렁탕|몸국|육개장|각재기|짬뽕|쌀국수|뼈다귀/.test(textOf(p))],
   ];
@@ -188,12 +189,17 @@ const MIN_RATING=3.7;
   const FOODS_DINNER=[
     ['all','🍽️ 1차 전체','음식점',p=>isDinnerMain(p)],
     // 흑돼지·오겹살처럼 이름에만 고기가 드러나는 가게도 포함 (분류가 그냥 '한식'인 경우)
-    ['meat','🥩 고기구이','고기',p=>/육류|고기|구이|곱창|막창|갈비|삼겹|오겹|돼지|흑돼지|소고기|한우|양꼬치|근고기/.test(textOf(p))&&!isChicken(p)&&(!isSoupPlace(p)||isGrill(p))],
-    ['blackpork','🐷 흑돼지','흑돼지',p=>/흑돼지/.test(textOf(p))],
-    ['sea','🐟 회·해산물','횟집',p=>/회|해물|해산물|생선|조개|장어|아구|대게|방어/.test(p.category_name)],
+    // 고기구이: 카카오 분류가 '육류,고기'(족발·닭·오리 제외)·양꼬치이거나, 분류가 그냥 '한식·술집'인데 이름에 고기가 있는 곳
+    // (장어·조개·생선구이, 흑돼지강정·만두·빵, 김치찌개·샤브는 제외)
+    ['meat','🥩 고기구이','고기',p=>isMeatGrill(p)],
+    ['blackpork','🐷 흑돼지','흑돼지',p=>/흑돼지/.test(textOf(p))&&!/^음식점 > (간식|분식|제과)/.test(String(p.category_name||''))],
+    // 회·해산물: 추어탕·굴국밥·복해장국처럼 한 그릇 식사는 1차 자리가 아니라서 뺀다
+    ['sea','🐟 회·해산물','횟집',p=>/회|해물|해산물|생선|조개|장어|아구|대게|방어/.test(p.category_name)&&!/추어|해장국|국밥|칼국수|황태/.test(textOf(p))],
     ['jokbal','🍖 족발·보쌈','족발',p=>/족발|보쌈/.test(textOf(p))],
-    ['chicken','🍗 치킨·닭요리','치킨',p=>isChicken(p)],
-    ['stew','🍲 전골·찜','전골',p=>/전골|찜|샤브|탕|닭볶음/.test(p.category_name)],
+    // 닭해장국·닭칼국수·닭개장 같은 국물 한 그릇, 마라탕집 오리목은 빼고 삼계탕·백숙은 둔다
+    ['chicken','🍗 치킨·닭요리','치킨',p=>isChicken(p)&&!/^음식점 > 중식/.test(String(p.category_name||''))&&!(isSoupPlace(p)&&!/삼계탕|백숙|닭요리/.test(String(p.category_name||'')))&&!/해장국|칼국수|닭개장/.test(textOf(p))],
+    // 전골·찜: '탕'만으로는 설렁탕·곰탕·삼계탕·추어탕·마라탕까지 걸려서, 여럿이 둘러앉는 탕만
+    ['stew','🍲 전골·찜','전골',p=>/전골|찜|샤브|감자탕|해물탕|매운탕|닭볶음|닭한마리|동태탕|아구/.test(String(p.category_name||''))&&!/^음식점 > 중식/.test(String(p.category_name||''))],
     ['chinese','🥟 중식 요리','중식',p=>/중식|중국/.test(p.category_name)],
     ['bar','🍺 2차 술집','술집',p=>isBar(p)]
   ];
@@ -211,6 +217,15 @@ const MIN_RATING=3.7;
   // 국밥·해장국·곰탕처럼 국물 요리가 주인 집: 이름에 '한우·흑돼지'가 있어도 고기구이·접대 고기로 보지 않는다
   const SOUP_PLACE=/국밥|해장국|곰탕|설렁탕|순대국|국수|냉면|갈비탕|소머리|내장탕|수육국|뼈다귀|감자탕|육개장|몸국|탕$/;
   function isSoupPlace(p){const c=String(p.category_name||'');return SOUP_PLACE.test(c.split('>').pop().trim())||SOUP_PLACE.test(String(p.place_name||''));}
+  function isMeatGrill(p){
+    // 메뉴로 확인할 때는 분류 뒤에 ' | 대표메뉴'가 붙어 온다
+    const [c,menu='']=String(p.category_name||'').split(' | ');
+    if(isChicken(p)||(isSoupPlace(p)&&!isGrill(p))) return false;
+    if(/양꼬치/.test(c)) return true;
+    if(/육류,고기/.test(c)) return !/족발|보쌈|닭요리|오리|꿩/.test(c);
+    const nm=String(p.place_name||'')+' '+menu;
+    return /^음식점 > (한식|술집[^>]*)\s*$/.test(c)&&/고기|구이|곱창|막창|갈비|삼겹|오겹|돼지|흑돼지|소고기|한우|근고기|대패/.test(nm)&&!/찌개|전골|샤브|김치/.test(String(p.place_name||''));
+  }
   function isGrill(p){return /구이|삼겹|오겹|갈비(?!탕)|숯불/.test(String(p.category_name||''))}
   // 전국 체인점: 빼지 않고 표시 + 순위만 낮춰 동네 가게를 앞세운다
   const FRANCHISE=/맥도날드|버거킹|롯데리아|맘스터치|KFC|케이에프씨|서브웨이|노브랜드버거|프랭크버거|스타벅스|메가(MGC)?커피|컴포즈커피|빽다방|이디야|투썸플레이스|할리스|파스쿠찌|폴바셋|엔제리너스|커피빈|탐앤탐스|더벤티|매머드커피|파리바게뜨|뚜레쥬르|던킨|배스킨라빈스|공차|김밥천국|본죽|한솥|봉구스|교촌치킨|BBQ|BHC|굽네치킨|네네치킨|처갓집|푸라닭|60계|도미노피자|피자헛|미스터피자|파파존스/i;
@@ -1028,7 +1043,7 @@ const MIN_RATING=3.7;
           if(!menu) return false; // 메뉴로 확인할 수 없으면 넣지 않는다
           // 대표 메뉴(앞 3개)로만 판단: 김밥집의 '유부초밥'처럼 곁들이 메뉴 하나로 일식·회에 들어가지 않게
           const main=String(menu).split(',').slice(0,3).join(',');
-          return food.test(Object.assign({},p,{category_name:String(p.category_name||'')+' '+main}));
+          return food.test(Object.assign({},p,{category_name:String(p.category_name||'')+' | '+main}));
         });
         if(drink&&drink.narrow){const picked=rs.filter(p=>drink.narrow.test(textOf(p)));if(picked.length) rs=picked;}
         state.searchedCount=rs.length;

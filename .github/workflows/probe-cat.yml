@@ -1,4 +1,4 @@
-name: Probe categories (temporary)
+name: Probe categories (temporary) v2
 on:
   push:
     branches: [gh-pages]
@@ -62,4 +62,4 @@ jobs:
             }
           }
           JS
-          node /tmp/analyze.js index.html /tmp/rows.json
+          node /tmp/analyze.js index.html /tmp/rows.json | head -c 60000
