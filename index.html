@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-recent">
+<body data-app-version="2026-09-25-mainmenu">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -1012,7 +1012,9 @@ const MIN_RATING=3.7;
           if(!p.__byMenu) return true;
           const r=result.get(String(p.id)); const menu=r&&r.menu;
           if(!menu) return false; // 메뉴로 확인할 수 없으면 넣지 않는다
-          return food.test(Object.assign({},p,{category_name:String(p.category_name||'')+' '+menu}));
+          // 대표 메뉴(앞 3개)로만 판단: 김밥집의 '유부초밥'처럼 곁들이 메뉴 하나로 일식·회에 들어가지 않게
+          const main=String(menu).split(',').slice(0,3).join(',');
+          return food.test(Object.assign({},p,{category_name:String(p.category_name||'')+' '+main}));
         });
         if(drink&&drink.narrow){const picked=rs.filter(p=>drink.narrow.test(textOf(p)));if(picked.length) rs=picked;}
         state.searchedCount=rs.length;

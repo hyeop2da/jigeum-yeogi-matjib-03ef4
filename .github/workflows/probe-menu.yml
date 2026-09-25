@@ -1,0 +1,26 @@
+name: Probe menus (temporary)
+on:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/probe-menu.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 - <<'PY'
+          import json, re, urllib.request, urllib.parse
+          cfg = open("config.js").read()
+          JS = re.search(r"KAKAO_JS_KEY:\s*'([^']+)'", cfg).group(1)
+          PROXY = re.search(r"KAKAO_PROXY_URL:\s*'([^']+)'", cfg).group(1)
+          O = "https://hyeop2da.github.io"
+          sdk = {"Authorization": "KakaoAK " + JS, "KA": "sdk/4.4.19 os/javascript lang/ko-KR device/Win32 origin/" + urllib.parse.quote(O), "Origin": O, "Referer": O + "/", "User-Agent": "Mozilla/5.0"}
+          for name in ["김밥상회 제주본점", "부가네얼큰이", "오키니 제주", "스시노보루"]:
+              d = json.load(urllib.request.urlopen(urllib.request.Request("https://dapi.kakao.com/v2/local/search/keyword.json?" + urllib.parse.urlencode({"query": name, "x": 126.4984, "y": 33.4889, "sort": "distance"}), headers=sdk)))["documents"]
+              if not d: print(name, "없음"); continue
+              b = d[0]
+              q = urllib.parse.urlencode({"id": b["id"], "name": b["place_name"], "addr": b.get("road_address_name") or "", "x": b["x"], "y": b["y"], "v": "probemenu"})
+              r = json.load(urllib.request.urlopen(urllib.request.Request(PROXY + "?" + q, headers={"Origin": O})))
+              print(b["place_name"], "|", b["category_name"], "| menu:", r.get("menu"))
+          PY
