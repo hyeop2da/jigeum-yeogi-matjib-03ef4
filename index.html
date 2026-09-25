@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-chain">
+<body data-app-version="2026-09-25-unrated">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -518,7 +518,8 @@
       if(b>=500) badges.push(['blue','📝 블로그 인기']);
       plus.push('📝 블로그 후기 '+b.toLocaleString()+'개 · 카카오 평점은 아직 없어요');
     }else{
-      plus.push('ℹ️ 평점 정보 없음 · 거리와 조건으로 추천');
+      s=5;
+      plus.push('☆ 아직 카카오 평점이 없어요 · 새로 생겼거나 평가가 적은 곳');
     }
     if(isFranchise(p)&&!(typedQuery&&FRANCHISE.test(typedQuery))){s-=state.situation==='solo'?6:15;badges.push(['gray','🏷️ 프랜차이즈']);}
     if(p.__rating!=null&&Number(p.__reviewCount||0)>=1000){s+=4;badges.push(['blue','📝 블로그 인기']);}
@@ -636,7 +637,7 @@
     list.innerHTML=top.map((p,i)=>{
       const s=p.__s;
       const divider=i===state.openCount?'<div class="closedhead">🔴 식사 시간에 문 닫는 곳 · 참고용</div>':'';
-      const rating=p.__rating!=null?'⭐ '+p.__rating.toFixed(1)+' · 평가 '+Number(p.__ratingCount||0).toLocaleString()+'명 · 블로그 '+Number(p.__reviewCount||0).toLocaleString()+'개':(Number(p.__reviewCount||0)>=BLOG_MIN?'📝 블로그 후기 '+Number(p.__reviewCount).toLocaleString()+'개 · 카카오 평점 없음':'평점 정보 없음');
+      const rating=p.__rating!=null?'⭐ '+p.__rating.toFixed(1)+' · 평가 '+Number(p.__ratingCount||0).toLocaleString()+'명 · 블로그 '+Number(p.__reviewCount||0).toLocaleString()+'개':(Number(p.__reviewCount||0)>=BLOG_MIN?'📝 블로그 후기 '+Number(p.__reviewCount).toLocaleString()+'개 · 카카오 평점 없음':'☆ 아직 평점 없음');
       return divider+'<article class="card'+(i===state.pickIdx?' is-pick':'')+(i>=state.openCount?' closedcard':'')+'" data-index="'+i+'">'+
         (s.visit?'<div class="mini" style="margin:0 0 6px"><span class="b red">🔁 '+escapeHtml(whenText(s.visit.ts))+' 방문</span></div>':'')+
         '<div class="row"><div class="name"><span class="rank">'+(i<state.openCount?(i+1):'·')+'</span>'+escapeHtml(p.place_name)+'</div><div class="distance">'+(s.drive?'🚗 약 '+s.driveMin+'분 · '+fmtDistance(p.distance):'🚶'+(p.__est?'약 ':'')+s.walk+'분 · '+distText(p))+'</div></div>'+
@@ -652,7 +653,7 @@
     const range=state.region?(state.village||state.region.name+' 전체'):(radiusOpts.find(r=>r[1]===state.radius)||['',state.radius])[0];
     $('summary').textContent=(state.ratingsDown
       ? '추천 '+state.openCount+'곳 · 평점 없이 거리·조건 기준 · '+range
-      : '추천 순위 '+state.openCount+'곳 (후보 '+state.searchedCount+'곳 중 평점 '+MIN_RATING+'↑) · '+range)+(top.length>state.openCount?' · 문 닫은 곳 '+(top.length-state.openCount)+'곳':'');
+      : '추천 순위 '+state.openCount+'곳 (후보 '+state.searchedCount+'곳 · 평점 '+MIN_RATING+' 미만 제외) · '+range)+(top.length>state.openCount?' · 문 닫은 곳 '+(top.length-state.openCount)+'곳':'');
   }
   function setMeal(meal){
     state.meal=meal;
@@ -904,7 +905,7 @@
         rs=rs.filter(p=>{
           if(!p.__byMenu) return true;
           const r=result.get(String(p.id)); const menu=r&&r.menu;
-          if(!menu) return !early&&!!r;
+          if(!menu) return false; // 메뉴로 확인할 수 없으면 넣지 않는다
           return food.test(Object.assign({},p,{category_name:String(p.category_name||'')+' '+menu}));
         });
         if(drink&&drink.narrow){const picked=rs.filter(p=>drink.narrow.test(textOf(p)));if(picked.length) rs=picked;}
@@ -919,7 +920,8 @@
         p.__menu=r&&r.menu?r.menu:'';
           // 평점 서버가 멈추면 평점 없이도 추천한다
           if(down) return p.__rating==null||p.__rating>=MIN_RATING;
-          if(p.__rating==null) return Number(p.__reviewCount||0)>=BLOG_MIN;
+          // 평점이 아예 없는 곳(새로 생겼거나 평가 전)은 빼지 않고 아래쪽에 둔다. 평점이 낮은 곳만 뺀다
+          if(p.__rating==null) return true;
           return p.__rating>=MIN_RATING;
         });
         updateVillages(); renderChips();
