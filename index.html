@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-opennow">
+<body data-app-version="2026-09-25-morning">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -408,7 +408,7 @@
   $('dayDialog').onclick=e=>{if(e.target.id==='dayDialog')closeDay();};
 
   // ── 영업시간 (카카오맵 가게 상세의 '오늘부터 7일') ──
-  const MEAL_SLOT={lunch:{from:12*60,to:13*60,need:40,label:'점심시간(12~13시)',endAt:13*60+30},dinner:{from:18*60,to:20*60,need:60,label:'저녁시간(18~20시)',endAt:21*60}};
+  const MEAL_SLOT={lunch:{from:11*60+30,to:13*60+30,need:40,label:'점심시간(11:30~13:30)',endAt:15*60},dinner:{from:18*60,to:20*60,need:60,label:'저녁시간(18~20시)',endAt:21*60}};
   function hm(t){const m=String(t).match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:NaN}
   function hmText(min){min=((min%1440)+1440)%1440;return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0')}
   function dayKey(date){return (date.getMonth()+1)+'/'+date.getDate()}
@@ -461,7 +461,7 @@
     const segs=hoursOn(hours,date); if(segs===null) return null;
     const got=segs.reduce((t,[a,z])=>t+Math.max(0,Math.min(z,slot.to)-Math.max(a,slot.from)),0);
     const label=(tomorrow?'내일 ':'')+slot.label;
-    return {ok:got>=slot.need,label,off:!segs.length,short:label+(segs.length?' 영업 안 함':' 휴무')};
+    return {ok:got>=slot.need,label,off:!segs.length,tomorrow,short:label+(segs.length?' 영업 안 함':' 휴무')};
   }
   const STATUS_LABEL={open:'영업 중',break:'브레이크타임',before:'영업 전',closed:'영업 종료',off:'오늘 휴무'};
   function statusIcon(code){return code==='open'?'🟢':code==='break'||code==='before'?'🟡':'🔴'}
@@ -567,14 +567,20 @@
     const now=new Date();
     const mo=mealOpen(p.__hours,state.meal,now,state.food);
     if(mo&&!mo.ok){s-=40;minus.push('⛔ '+(mo.now?(mo.off?'오늘 휴무예요':'지금은 영업 시간이 아니에요'):mo.label+(mo.off?'은 휴무예요':'에 영업하지 않아요')));}
-    const hl=hoursLine(p,now); if(hl) plus.push('🕒 '+hl);
+    // 식사 시간 전(아침)·내일 기준일 때는 '지금 영업 전' 대신 그 식사 시간에 여는지를 보여 준다
+    let status=hoursShort(p,now);
+    if(status&&mo&&!mo.now&&mo.ok){
+      const d=mo.tomorrow?addDays(now,1):now, e=hoursEntry(p.__hours,d);
+      status={code:'open',text:(mo.tomorrow?'내일 ':'')+(state.meal==='dinner'?'저녁':'점심')+' 영업'+(e&&e.h?' · '+e.h.replace('~',' ~ '):'')+(e&&e.b&&e.b.length?' (브레이크 '+e.b.join(', ')+')':'')};
+    }
+    if(status){const e=hoursEntry(p.__hours,mo&&mo.tomorrow?addDays(now,1):now);plus.push('🕒 '+status.text+(e&&e.lo?' · 라스트오더 '+e.lo:''));}
     else plus.push('🕒 영업시간 정보 없음 · 카카오맵 상세확인에서 확인하세요');
     const walkTxt=p.__est?'🚶 도보 약 '+walk+'분 (직선 거리로 추정)':'🚶 도보 '+walk+'분 (길 따라 '+fmtDistance(p.distance)+')';
     if(drive) plus.push('🚗 차로 약 '+driveMin+'분 ('+fmtDistance(p.distance)+' · '+state.region.name+' 중심에서)');
     else if(state.meal==='dinner') plus.push(walk<=20?walkTxt:'🚕 '+distText(p)+' · 택시로 약 '+Math.max(3,Math.round(p.distance/400))+'분');
     else if(walk<=20) plus.push(walkTxt+' · 점심 60분 중 식사 '+(60-walk*2)+'분 확보');
     else plus.push('🚗 '+distText(p)+' 거리 (차량 이동 권장)');
-    return {score:s,plus,minus,badges,walk,visit,drive,driveMin,status:hoursShort(p,now),mealOk:mo?mo.ok:null,mealShort:mo?mo.short:''};
+    return {score:s,plus,minus,badges,walk,visit,drive,driveMin,status,mealOk:mo?mo.ok:null,mealShort:mo?mo.short:''};
   }
   // 주소에서 지역 다음 단위(○○리·○○동)를 뽑는다: '… 구좌읍 김녕리 123' → '김녕리'
   function villageOf(p){
