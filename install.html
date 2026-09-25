@@ -4,86 +4,196 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <meta name="description" content="지금 여기 맛집 앱 설치 방법 (안드로이드·아이폰)" />
+  <title>지금 여기 맛집</title>
+  <meta name="description" content="누구랑·무엇을 고르면 지금 있는 곳 근처에서 갈 식당 딱 한 곳을 골라 주는 무료 앱. 점심은 물론 저녁 회식 1차까지." />
+  <meta property="og:title" content="🍜 지금 여기 맛집 · 점심 고민 30초 컷" />
+  <meta property="og:description" content="누구랑·무엇을 고르면 근처 식당 딱 한 곳. 실제 걷는 시간, 믿을 만한 평점, 이번 주 기록까지. 무료·로그인 없음." />
+  <meta property="og:image" content="https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/icon-512.png" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
-  <title>지금 여기 맛집 설치하기</title>
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <style>
-    :root{--bg:#f6f7fb;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#ef4444}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Arial,sans-serif;line-height:1.6}
-    .wrap{max-width:560px;margin:auto;padding:24px 16px 40px}
-    .head{display:flex;gap:14px;align-items:center}.head img{width:64px;height:64px;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.12)}
-    h1{margin:0;font-size:22px}.sub{margin:2px 0 0;color:var(--muted);font-size:14px}
-    .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:14px}
-    .card h2{margin:0 0 8px;font-size:17px}ol{margin:0;padding-left:20px}li{margin:4px 0}
-    .btn{display:block;width:100%;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;margin-top:10px}
-    .primary{background:var(--accent);color:#fff}.dark{background:#111827;color:#fff}.ghost{background:#fff;color:#111827;border:1px solid var(--line)}
-    .hide{display:none}.warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
-    .qr{text-align:center}.qr img{width:200px;height:200px}.small{font-size:12px;color:var(--muted)}
+    :root{--bg:#f6f7fb;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#ef4444;--soft:#fef2f2;--ok:#166534;--oksoft:#f0fdf4}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;line-height:1.65;word-break:keep-all}
+    .hero{background:linear-gradient(135deg,#111827 0%,#1f2937 65%,#374151 100%);color:#fff;padding:calc(28px + env(safe-area-inset-top)) 18px 30px;border-radius:0 0 28px 28px}
+    .wrap{max-width:640px;margin:0 auto}
+    .brand{display:flex;align-items:center;gap:12px}.brand img{width:52px;height:52px;border-radius:14px;background:#fff}
+    .brand b{font-size:15px;color:#d1d5db;font-weight:700}
+    h1{font-size:clamp(26px,7vw,34px);line-height:1.3;margin:18px 0 8px;letter-spacing:-.6px;text-wrap:balance}
+    .lead{color:#e5e7eb;margin:0;font-size:16px}
+    .cta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}
+    .btn{display:block;text-align:center;text-decoration:none;font-weight:800;border-radius:14px;padding:14px 10px;font-size:15px}
+    .btn.primary{background:var(--accent);color:#fff}.btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+    .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}.pills span{font-size:12px;font-weight:700;background:rgba(255,255,255,.12);border-radius:999px;padding:5px 10px;color:#f3f4f6}
+    main{padding:8px 16px 40px}
+    section{margin-top:30px}
+    h2{font-size:20px;margin:0 0 4px;letter-spacing:-.3px}
+    .sub{margin:0 0 14px;color:var(--muted);font-size:14px}
+    .who{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+    .who li{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px}
+    .steps{display:grid;gap:10px;margin:0;padding:0;list-style:none;counter-reset:s}
+    .steps li{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;counter-increment:s}
+    .steps li::before{content:counter(s);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#111827;color:#fff;font-weight:800;font-size:14px}
+    .steps b{display:block}.steps small{color:var(--muted);font-size:13px}
+    .feats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .feat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+    .feat .ic{font-size:20px;line-height:1}.feat h3{font-size:14.5px;margin:6px 0 4px}.feat p{margin:0;font-size:13px;color:#374151}
+    @media (max-width:330px){.feats{grid-template-columns:1fr}}
+    .tablewrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px}
+    table{border-collapse:collapse;width:100%;font-size:13px}
+    th,td{padding:10px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    thead th{background:#f9fafb;font-size:12px;color:#374151}
+    th.me,td.me{background:var(--soft);font-weight:700;color:#991b1b}
+    tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+    tbody th{font-weight:700;white-space:nowrap}
+    .note{font-size:12px;color:var(--muted);margin:8px 2px 0}
+    .install{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}
+    .install img{width:128px;height:128px}
+    .install p{margin:0 0 8px;font-size:14px}
+    .install .btn{margin-top:6px}
+    @media (max-width:420px){.install{grid-template-columns:1fr;text-align:center}.install img{margin:0 auto}}
+    .faq{display:grid;gap:8px}
+    details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+    summary{font-weight:700;cursor:pointer;font-size:15px}
+    details p{margin:8px 0 0;font-size:14px;color:#374151}
+    .foot{margin-top:30px;font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+    .foot p{margin:0 0 6px}
+    a:focus-visible,summary:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:10px}
+    .card h3{margin:0 0 6px;font-size:16px}.card ol{margin:4px 0 8px;padding-left:20px}.card li{margin:3px 0;font-size:14px}
+    .card.warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.card.okc{background:var(--oksoft);border-color:#bbf7d0;color:var(--ok)}
+    .hide{display:none}.small{font-size:12px;color:var(--muted)}
     kbd{background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-family:inherit;font-weight:700}
+    button.btn{width:100%;border:0;cursor:pointer;font-family:inherit;margin-top:10px}.btn.dark{background:#111827;color:#fff}.btn.line{background:#fff;color:#111827;border:1px solid var(--line)}
+    .qrbox{text-align:center}.qrbox img{width:160px;height:160px}
+    .go{margin-top:12px}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="head"><img src="icon-192.png" alt="" /><div><h1>지금 여기 맛집</h1><p class="sub">메뉴 고민 30초 컷 · 점심 결정 앱</p></div></div>
-
-  <div class="card ok hide" id="installed">✅ 이미 앱으로 설치되어 실행 중이에요. 홈 화면 아이콘으로 여시면 됩니다.</div>
-
-  <div class="card warn hide" id="kakao">
-    <h2>💬 카카오톡에서 여셨네요</h2>
-    카카오톡 안의 화면에서는 설치가 안 돼요. 아래 버튼으로 <b>브라우저에서 열어</b> 주세요.
-    <button class="btn dark" id="openExternal">브라우저로 열기</button>
-    <p class="small">버튼이 안 되면 오른쪽 아래 <kbd>⋮</kbd> 또는 <kbd>공유</kbd> → "다른 브라우저로 열기"를 누르세요.</p>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand"><img src="icon-192.png" alt="" /><b>지금 여기 맛집</b></div>
+    <h1>“오늘 뭐 먹지?”<br>30초면 끝나요</h1>
+    <p class="lead">누구랑·무엇을 고르면, 지금 있는 곳 근처에서 갈 식당을 <b>딱 한 곳</b> 골라 드려요. 점심은 물론 <b>저녁 회식 1차</b>까지.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">📲 설치하기</a>
+      <a class="btn ghost" href="./">바로 써보기 →</a>
+    </div>
+    <div class="pills"><span>무료</span><span>로그인 없음</span><span>광고 없음</span><span>기록은 내 폰에만</span></div>
   </div>
+</header>
 
-  <div id="guides">
-  <div class="card" id="android">
-    <h2>🤖 갤럭시 · 안드로이드</h2>
-    <button class="btn primary hide" id="installBtn">📲 앱 설치하기</button>
-    <p class="small" id="installHint" style="margin:0 0 6px">사용하는 브라우저에 맞춰 아래처럼 설치하세요.</p>
-    <b>삼성 인터넷</b> (갤럭시 기본 브라우저)
-    <ol>
-      <li>화면 아래 <kbd>≡</kbd> 메뉴를 누르세요.</li>
-      <li><b>"현재 페이지 추가"</b> → <b>"홈 화면"</b> → <b>"추가"</b></li>
+<main class="wrap">
+  <section id="install">
+    <h2>📲 1분이면 설치 끝</h2>
+    <p class="sub">앱스토어 없이 홈 화면에 🍜 아이콘이 생겨요. 용량은 거의 없어요.</p>
+    <div class="card okc hide" id="installed">✅ 이미 앱으로 설치되어 있어요. 홈 화면의 🍜 아이콘으로 여시면 됩니다.</div>
+    <div class="card warn hide" id="kakao">
+      <h3>💬 카카오톡에서 여셨네요</h3>
+      카카오톡 안에서는 설치가 안 돼요. 아래 버튼으로 <b>브라우저에서 열어</b> 주세요.
+      <button class="btn dark" id="openExternal">브라우저로 열기</button>
+      <p class="small">버튼이 안 되면 오른쪽 아래 <kbd>⋮</kbd> 또는 <kbd>공유</kbd> → “다른 브라우저로 열기”</p>
+    </div>
+    <div id="guides">
+      <div class="card" id="android">
+        <h3>🤖 갤럭시 · 안드로이드</h3>
+        <button class="btn primary hide" id="installBtn">📲 앱 설치하기</button>
+        <b>삼성 인터넷</b>
+        <ol><li>화면 아래 <kbd>≡</kbd> 메뉴</li><li><b>“현재 페이지 추가”</b> → <b>“홈 화면”</b> → <b>“추가”</b></li></ol>
+        <b>크롬</b>
+        <ol><li>오른쪽 위 <kbd>⋮</kbd> 메뉴</li><li><b>“앱 설치”</b> 또는 <b>“홈 화면에 추가”</b> → <b>“설치”</b></li></ol>
+      </div>
+      <div class="card" id="ios">
+        <h3>🍎 아이폰</h3>
+        <ol><li>꼭 <b>사파리(Safari)</b>로 여세요.</li><li>화면 아래 <kbd>공유 ⬆️</kbd> 버튼</li><li><b>“홈 화면에 추가”</b> → 오른쪽 위 <b>“추가”</b></li></ol>
+      </div>
+    </div>
+    <div class="card qrbox hide" id="desktop">
+      <h3>💻 PC에서 보고 계세요</h3>
+      <p class="small">휴대폰 카메라로 QR을 찍으면 이 페이지가 휴대폰에서 열려요.</p>
+      <img src="qr.png" alt="이 페이지로 가는 QR 코드" />
+    </div>
+    <a class="btn dark go" href="./">설치 없이 바로 써보기 →</a>
+    <button class="btn line" id="copyLink">🔗 이 페이지 링크 복사 (동료에게 보내기)</button>
+  </section>
+
+  <section>
+    <h2>이럴 때 쓰세요</h2>
+    <p class="sub">고민하는 시간을 줄이고, 먹는 시간을 늘려요.</p>
+    <ul class="who">
+      <li>🍚 점심시간마다 팀원들과 “아무거나”만 오갈 때</li>
+      <li>👔 회식 1차 장소를 정해야 하는 담당일 때</li>
+      <li>🤝 손님을 모실 만한 믿을 만한 식당이 필요할 때</li>
+      <li>🔁 이번 주에 뭐 먹었는지 기억이 안 날 때</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>사용법</h2>
+    <p class="sub">버튼 서너 번이면 끝이에요.</p>
+    <ol class="steps">
+      <li><div><b>위치 정하기</b><small>📍 내 위치, 또는 지역·주소 검색 (예: 노형오거리)</small></div></li>
+      <li><div><b>☀️ 점심 / 🌙 저녁 고르기</b><small>앱은 항상 점심으로 시작해요. 저녁은 눌러서 바꿔요.</small></div></li>
+      <li><div><b>누구랑 · 무엇을 · 얼마나 걸을지</b><small>혼밥·팀 점심·손님 / 한식·국밥·국수·고기… / 도보 5·10·15분</small></div></li>
+      <li><div><b>👑 추천 한 곳 확인</b><small>마음에 안 들면 👉 다른 곳, 못 고르겠으면 🎲 운에 맡기기</small></div></li>
+      <li><div><b>가기 · 알리기 · 기록하기</b><small>🗺️ 카카오맵 길찾기 · 📤 이 식당 공유(글 수정 가능) · ✅ 점심 기록</small></div></li>
     </ol>
-    <b>크롬</b>
-    <ol>
-      <li>오른쪽 위 <kbd>⋮</kbd> 메뉴를 누르세요.</li>
-      <li><b>"앱 설치"</b> 또는 <b>"홈 화면에 추가"</b> → <b>"설치"</b></li>
-    </ol>
-    <p class="small" style="margin:8px 0 0">홈 화면에 생긴 🍜 아이콘으로 실행하세요.</p>
-  </div>
+  </section>
 
-  <div class="card" id="ios">
-    <h2>🍎 아이폰</h2>
-    <ol>
-      <li>반드시 <b>사파리(Safari)</b>로 여세요.</li>
-      <li>화면 아래 <kbd>공유 ⬆️</kbd> 버튼을 누르세요.</li>
-      <li>목록을 내려 <b>"홈 화면에 추가"</b> → 오른쪽 위 <b>"추가"</b></li>
-      <li>홈 화면에 생긴 🍜 아이콘으로 실행하세요.</li>
-    </ol>
-  </div>
-  </div>
+  <section>
+    <h2>이런 점이 좋아요</h2>
+    <p class="sub">목록을 보여주는 게 아니라, 대신 골라 주는 데 집중했어요.</p>
+    <div class="feats">
+      <div class="feat"><div class="ic">👑</div><h3>딱 한 곳 추천</h3><p>수십 곳 목록 대신 1순위와 이유를 먼저 보여줘요. 결정이 빨라져요.</p></div>
+      <div class="feat"><div class="ic">⭐</div><h3>믿을 만한 평점</h3><p>평가 3명의 5.0점보다 평가 800명의 4.4점을 더 믿어요. 3.7점 미만은 빼요.</p></div>
+      <div class="feat"><div class="ic">🚶</div><h3>실제 걷는 시간</h3><p>직선이 아니라 길을 따라 걷는 거리로 계산해요. “도보 10분”이 진짜 10분이에요.</p></div>
+      <div class="feat"><div class="ic">🔁</div><h3>같은 집 반복 방지</h3><p>이번 주에 간 곳과 최근 먹은 메뉴는 순위를 내려요. 요일을 누르면 지난 기록도 고치거나 채울 수 있어요.</p></div>
+      <div class="feat"><div class="ic">🕒</div><h3>영업시간 확인</h3><p>영업 중·브레이크타임·휴무를 보여 주고, 식사 시간에 닫는 곳은 뒤로 보내요.</p></div>
+      <div class="feat"><div class="ic">🌧️</div><h3>날씨·상황 반영</h3><p>비 오거나 쌀쌀하면 국물, 혼밥이면 가까운 곳, 손님이면 평점 높은 곳을 올려요.</p></div>
+      <div class="feat"><div class="ic">🌙</div><h3>저녁 회식 1차 모드</h3><p>고기구이·흑돼지·회·족발 등 1차로 갈 만한 곳 위주. 2차 술집 칩도 따로.</p></div>
+      <div class="feat"><div class="ic">📤</div><h3>한 번에 공유</h3><p>가게·평점·도보 시간·길찾기 링크가 담긴 글을 고쳐서 카톡으로 바로 보내요.</p></div>
+      <div class="feat"><div class="ic">🔒</div><h3>부담 없는 사용</h3><p>무료, 회원가입 없음, 광고 없음. 점심 기록은 서버가 아니라 내 폰에만 저장돼요.</p></div>
+    </div>
+  </section>
 
-  <div class="card hide" id="desktop">
-    <h2>💻 PC에서 보고 계세요</h2>
-    휴대폰 카메라로 아래 QR 코드를 찍으면 설치 화면이 열려요.
-  </div>
+  <section>
+    <h2>다른 앱과 뭐가 달라요?</h2>
+    <p class="sub">지도 앱은 ‘찾기’, 맛집 앱은 ‘구경하기’, 이 앱은 ‘정하기’예요.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th></th><th class="me">지금 여기 맛집</th><th>지도 앱<br><small>카카오맵·네이버지도</small></th><th>맛집 리뷰 앱</th></tr></thead>
+        <tbody>
+          <tr><th>결과</th><td class="me">추천 1곳 + 이유</td><td>검색 결과 목록</td><td>리뷰·사진 목록</td></tr>
+          <tr><th>누가 고르나</th><td class="me">조건에 맞춰 앱이</td><td>내가 비교해서</td><td>내가 읽고서</td></tr>
+          <tr><th>평점 보는 법</th><td class="me">평가 인원으로 보정</td><td>숫자 그대로</td><td>앱마다 다름</td></tr>
+          <tr><th>누구랑 먹는지</th><td class="me">혼밥·팀·손님·회식</td><td>—</td><td>일부 필터</td></tr>
+          <tr><th>최근에 간 곳</th><td class="me">순위 자동 조정</td><td>—</td><td>—</td></tr>
+          <tr><th>영업시간·날씨</th><td class="me">식사 시간·날씨 반영</td><td>영업시간 표시</td><td>일부 표시</td></tr>
+          <tr><th>설치·가입</th><td class="me">웹앱, 가입 없음</td><td>앱 설치</td><td>앱 설치·가입</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">지도·리뷰 앱의 기능은 일반적인 사용 방식 기준이에요. 길찾기와 가게 상세는 카카오맵으로 연결해서, 이미 쓰던 앱을 그대로 활용해요.</p>
+  </section>
 
-  <div class="card qr">
-    <img src="qr.png" alt="설치 페이지 QR 코드" />
-    <p class="small">동료에게 공유할 때 이 QR 코드나 주소를 보내 주세요.<br><b>hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/install.html</b></p>
-    <button class="btn ghost" id="copyLink">🔗 설치 링크 복사</button>
-  </div>
+  <section>
+    <h2>자주 묻는 질문</h2>
+    <div class="faq">
+      <details><summary>돈이 드나요?</summary><p>아니요. 무료이고 광고도 없어요. 결제나 회원가입 단계가 없어요.</p></details>
+      <details><summary>아이폰은 어떻게 설치하나요?</summary><p>꼭 <b>사파리</b>로 연 뒤 아래 공유 버튼 → “홈 화면에 추가”를 누르세요. 카카오톡 안에서 열었다면 “다른 브라우저로 열기”를 먼저 눌러 주세요.</p></details>
+      <details><summary>위치 권한을 꼭 켜야 하나요?</summary><p>아니요. 권한이 없으면 제주도청 기준으로 보여 주고, 위쪽 검색창에서 지역·주소로 위치를 바꿀 수 있어요.</p></details>
+      <details><summary>새 기능이 생기면 다시 설치하나요?</summary><p>아니요. 앱을 열 때 “🆕 새 버전이 준비됐어요” 알림이 뜨면 새로고침만 누르면 돼요.</p></details>
+      <details><summary>도보 시간이 카카오맵과 조금 달라요.</summary><p>오픈스트리트맵 도보 경로로 계산해서 1~3분 정도 차이가 날 수 있어요. 정확한 길은 🗺️ 길찾기로 카카오맵에서 확인하세요.</p></details>
+      <details><summary>영업 중인지도 알려주나요?</summary><p>네. 🟢 영업 중 · 🟡 브레이크타임/영업 전 · 🔴 휴무/종료를 보여 주고, 점심(12~13시)·저녁(18~20시)에 문을 안 여는 곳은 순위를 내려요. 카카오맵에 영업시간이 없는 가게는 표시되지 않아요.</p></details>
+    </div>
+  </section>
 
-  <a class="btn dark" href="./">설치 없이 바로 사용하기 →</a>
-  <a class="btn ghost" href="about.html">🍜 이 앱은 뭐가 좋아요? (소개 보기)</a>
-
-  <div class="card small">
-    <b>안내</b> · 설치해도 앱스토어 앱이 아니라 웹 앱이라 <b>용량이 거의 없고</b>, 새 기능은 자동으로 반영됩니다. 위치와 점심 기록은 이 휴대폰에만 저장됩니다. 개인이 만든 <b>비공식 서비스</b>로 제주특별자치도의 공식 서비스가 아닙니다.
+  <div class="foot">
+    <p><b>개인정보</b> · 로그인이 없고, 점심 기록은 이 휴대폰에만 저장돼요. 주변 검색·평점·날씨·도보 거리 계산을 위해 좌표와 가게 정보만 각 서비스(카카오, 평점 중계 서버, Open-Meteo, 오픈스트리트맵 경로 서버)로 보내요.</p>
+    <p>이 앱은 개인이 만든 <b>비공식 서비스</b>로, 제주특별자치도의 공식 서비스가 아닙니다.</p>
   </div>
-</div>
+</main>
 <script>
 (function(){
   const $=id=>document.getElementById(id);
@@ -94,20 +204,18 @@
   const inKakao=/KAKAOTALK/i.test(ua);
   if(standalone) $('installed').classList.remove('hide');
   if(inKakao) $('kakao').classList.remove('hide');
-  // 갤럭시·아이폰 안내를 모두 보여 주고, 지금 쓰는 기기 안내를 먼저 둔다
+  // 지금 쓰는 기기 안내를 먼저, PC면 QR
   if(isIOS) $('guides').insertBefore($('ios'),$('android'));
   if(!isIOS&&!isAndroid) $('desktop').classList.remove('hide');
   $('openExternal').onclick=()=>{location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(location.href);};
   let deferred=null;
-  window.addEventListener('beforeinstallprompt',e=>{
-    e.preventDefault(); deferred=e;
-    $('installBtn').classList.remove('hide'); $('installHint').textContent='버튼 한 번이면 설치돼요. 안 되면 아래 방법을 따라 하세요.';
-  });
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('installBtn').classList.remove('hide');});
   $('installBtn').onclick=async()=>{if(!deferred)return;deferred.prompt();deferred=null;$('installBtn').classList.add('hide');};
   window.addEventListener('appinstalled',()=>{$('installed').classList.remove('hide');$('installed').textContent='✅ 설치 완료! 홈 화면의 🍜 아이콘으로 여세요.';});
+  const LINK='https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/install.html';
   $('copyLink').onclick=async()=>{
-    try{await navigator.clipboard.writeText('https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/install.html');$('copyLink').textContent='✅ 복사했어요';}
-    catch(e){$('copyLink').textContent='주소를 길게 눌러 복사하세요';}
+    try{await navigator.clipboard.writeText(LINK);$('copyLink').textContent='✅ 복사했어요. 채팅방에 붙여넣으세요';}
+    catch(e){$('copyLink').textContent=LINK;}
   };
   if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
 })();

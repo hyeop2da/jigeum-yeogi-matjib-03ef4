@@ -74,7 +74,7 @@
         <li>마음에 들면 <b>✅ 여기로 결정</b> → 날짜·요일별로 기록돼요.</li>
         <li>일주일 안에 간 곳은 🔁 배너로 알려드려요. 기록은 <b>이 폰에만</b> 저장돼요.</li>
       </ol>
-      <div class="row2"><button class="ok" id="guideOk">알겠어요</button><a class="ghost" href="install.html">📱 앱으로 설치하는 방법</a></div>
+      <div class="row2"><button class="ok" id="guideOk">알겠어요</button><a class="ghost" href="install.html#install">📱 앱으로 설치하는 방법</a></div>
     </div>
     <section class="toolbar">
       <div class="step">① 누구랑 먹나요?</div>
@@ -998,7 +998,7 @@
     });
   });
   if(inKakaoTalk) showInstallBar('카카오톡 안에서는 설치가 안 돼요. 브라우저로 열어 주세요.','브라우저로 열기',()=>{location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(location.href);});
-  else if(isIOS) showInstallBar('📱 아이폰: 사파리 공유 버튼 → "홈 화면에 추가"','방법 보기',()=>{location.href='install.html';});
+  else if(isIOS) showInstallBar('📱 아이폰: 사파리 공유 버튼 → "홈 화면에 추가"','방법 보기',()=>{location.href='install.html#install';});
   window.addEventListener('appinstalled',()=>{$('installBar').classList.remove('show');toast('설치 완료! 홈 화면에서 바로 열 수 있어요');});
 
   // ── 서비스워커 & 업데이트 알림 ──
