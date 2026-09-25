@@ -133,7 +133,7 @@ jobs:
           set -euo pipefail
           B="https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4"
           for i in $(seq 1 30); do
-            if curl -fsS "$B/install.html?t=$(date +%s)" | grep -q "앱 설치하기" && curl -fsS -o /dev/null "$B/qr.png"; then echo "install.html · qr.png OK"; exit 0; fi
+            if curl -fsS "$B/about.html?t=$(date +%s)" | grep -q "다른 앱과 뭐가 달라요" && curl -fsS "$B/install.html?t=$(date +%s)" | grep -q "about.html" && curl -fsS -o /dev/null "$B/qr.png"; then echo "about.html · install.html · qr.png OK"; exit 0; fi
             echo "Pages 반영 대기 $i/30"; sleep 10
           done
           exit 1
