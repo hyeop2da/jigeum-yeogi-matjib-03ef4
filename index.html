@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-planahead">
+<body data-app-version="2026-09-25-haejang">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -156,7 +156,7 @@
 (function(){
   const CONFIG=window.APP_CONFIG||{KAKAO_JS_KEY:''};
 // 칩별 보조 검색어 — 칩 이름('고기구이' 등)은 카카오 검색에 거의 안 걸려서 실제 가게 이름에 많이 쓰이는 말로 보완
-const EXTRA_Q={meat:['삼겹살','흑돼지','갈비'],blackpork:['근고기','오겹살'],chicken:['닭요리','닭갈비'],japanese:['횟집','초밥'],sea:['회','물회'],soup:['국수'],jokbal:['보쌈'],cafe:['빵집']};
+const EXTRA_Q={meat:['삼겹살','흑돼지','갈비'],blackpork:['근고기','오겹살'],chicken:['닭요리','닭갈비'],japanese:['횟집','초밥'],sea:['회','물회'],soup:['국수'],haejang:['국밥','몸국','콩나물국밥'],jokbal:['보쌈'],cafe:['빵집']};
 const MIN_RATING=3.7;
   const MAX_SHOW=30;
   const BLOG_MIN=30; // 카카오 평점이 없어도 블로그 후기가 이만큼 있으면 후보에 넣는다
@@ -178,6 +178,8 @@ const MIN_RATING=3.7;
     ['snack','🍢 분식','분식',p=>/분식|떡볶이|김밥/.test(p.category_name)],
     ['meat','🥩 고기','고기',p=>/육류|고기|구이|곱창|막창|갈비|삼겹|돼지|소고기/.test(p.category_name)],
     ['cafe','☕ 카페·빵','카페',p=>isCafe(p)||isSnack(p)],
+    // 전날 회식 다음 날 점심: 해장국·국밥에 제주식 몸국·고사리육개장·각재기국, 짬뽕·쌀국수까지
+    ['haejang','🥣 해장','해장국',p=>isRestaurant(p)&&/해장|국밥|순대국|콩나물|북엇|북어|황태|복국|복어|선지|내장탕|우거지|올갱이|재첩|갈비탕|곰탕|설렁탕|몸국|육개장|각재기|짬뽕|쌀국수|뼈다귀/.test(textOf(p))],
   ];
   // 저녁은 '1차'로 갈 만한 곳 위주
   const FOODS_DINNER=[
