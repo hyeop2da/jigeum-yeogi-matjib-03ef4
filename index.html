@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-audit">
+<body data-app-version="2026-09-25-tests">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -1391,6 +1391,8 @@ const MIN_RATING=3.7; const RATE_CAP=80;
 
   document.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>{if(b.dataset.meal===state.meal)return;setMeal(b.dataset.meal);$('query').value='';state.autoExpanded=false;search();});
   $('appVer').textContent='버전 '+(document.body.dataset.appVersion||'');
+  // 자동 테스트 전용(주소에 ?debug=1 일 때만): 안쪽 판단 함수를 밖에서 확인할 수 있게
+  if(/[?&]debug=1(&|$)/.test(location.search)) window.__jy={state,FOODS_LUNCH,FOODS_DINNER,isMeatGrill,isSoupPlace,isChicken,isCafe,isBar,isEatery,isFranchise,isDinnerMain,foodLabelOf,catText,kwIn,isNamed,normName,drinkOf,linkName,kakaoWebUrl,kakaoAppPath,mealOpen,openStatus,hoursOn,scorePlace,villageOf,setMeal,DISTINCT_CAT,EXTRA_Q,walkMin,fmtDistance,mealIsTomorrow,guestReason};
   setMeal('lunch');
   renderContext();
   renderKakaoPref();
