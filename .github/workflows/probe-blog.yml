@@ -1,0 +1,39 @@
+name: Probe blog review counts (temporary)
+
+on:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/probe-blog.yml"]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Blog review fields
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.parse
+          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128 Safari/537.36"
+          def get(url, h):
+              hh = {"User-Agent": UA, "Accept": "application/json"}; hh.update(h)
+              try:
+                  r = urllib.request.urlopen(urllib.request.Request(url, headers=hh), timeout=20); return r.status, r.read().decode()
+              except urllib.error.HTTPError as e: return e.code, e.read().decode()[:300]
+          H = {"pf": "web", "appVersion": "6.6.0", "Origin": "https://place.map.kakao.com", "Referer": "https://place.map.kakao.com/"}
+          for q in ["카멜커피 행원", "우진해장국", "김녕빵집"]:
+              s, t = get("https://search.map.kakao.com/mapsearch/map.daum?" + urllib.parse.urlencode({"q": q, "page": 1}), {"Referer": "https://map.kakao.com/"})
+              row = (json.loads(t).get("place") or [{}])[0]
+              pid = str(row.get("confirmid"))
+              print("=====", q, "→", pid, row.get("name"), "| cate:", row.get("cate_name_depth1"), ">", row.get("cate_name_depth2"), "| rating:", row.get("rating_average"), row.get("rating_count"), "| reviewCount:", row.get("reviewCount"), "| kplace:", row.get("kplace_rating"), row.get("kplace_ratings_count"), "| addr:", row.get("new_address") or row.get("address"))
+              s, t = get(f"https://place-api.map.kakao.com/places/panel3/{pid}", H)
+              d = json.loads(t)
+              br = d.get("blog_review")
+              print("blog_review keys:", sorted(br.keys()) if isinstance(br, dict) else type(br))
+              if isinstance(br, dict):
+                  print("blog_review (no reviews):", json.dumps({k: v for k, v in br.items() if k not in ("reviews", "blog_reviews", "items")}, ensure_ascii=False)[:500])
+              kr = d.get("kakaomap_review")
+              if isinstance(kr, dict):
+                  print("kakaomap_review score/count:", json.dumps({k: v for k, v in kr.items() if not isinstance(v, (list, dict))}, ensure_ascii=False)[:300], "| score_set:", json.dumps(kr.get("score_set"), ensure_ascii=False)[:200])
+              sm = d.get("summary") or {}
+              print("summary keys:", sorted(sm.keys())[:30])
+          PY
