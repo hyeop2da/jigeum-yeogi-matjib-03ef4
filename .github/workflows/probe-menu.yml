@@ -1,0 +1,37 @@
+name: Probe menu data (temporary)
+
+on:
+  push:
+    branches: [gh-pages]
+    paths: [".github/workflows/probe-menu.yml"]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Category and menu
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.parse
+          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128 Safari/537.36"
+          def get(url, h):
+              hh = {"User-Agent": UA, "Accept": "application/json"}; hh.update(h)
+              try:
+                  r = urllib.request.urlopen(urllib.request.Request(url, headers=hh), timeout=20); return r.status, r.read().decode()
+              except urllib.error.HTTPError as e: return e.code, e.read().decode()[:300]
+          H = {"pf": "web", "appVersion": "6.6.0", "Origin": "https://place.map.kakao.com", "Referer": "https://place.map.kakao.com/"}
+          for q in ["부가네얼큰이", "우진해장국"]:
+              s, t = get("https://search.map.kakao.com/mapsearch/map.daum?" + urllib.parse.urlencode({"q": q, "page": 1}), {"Referer": "https://map.kakao.com/"})
+              rows = json.loads(t).get("place") or []
+              for r in rows[:3]:
+                  pid = str(r.get("confirmid"))
+                  print("=====", r.get("name"), pid, "|", r.get("cate_name_depth1"), ">", r.get("cate_name_depth2"), ">", r.get("cate_name_depth3"), ">", r.get("cate_name_depth4"), "|", r.get("new_address"))
+                  s, t = get(f"https://place-api.map.kakao.com/places/panel3/{pid}", H)
+                  d = json.loads(t)
+                  m = d.get("menu") or {}
+                  print("menu keys:", sorted(m.keys()) if isinstance(m, dict) else type(m))
+                  items = (m.get("menus") or {}).get("items") if isinstance(m.get("menus"), dict) else m.get("menus") or m.get("items")
+                  print("menu sample:", json.dumps(items[:6] if isinstance(items, list) else m, ensure_ascii=False)[:700])
+                  sm = d.get("summary") or {}
+                  print("summary.category:", json.dumps(sm.get("category"), ensure_ascii=False)[:300])
+          PY
