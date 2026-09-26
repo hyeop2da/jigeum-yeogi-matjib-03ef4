@@ -16,7 +16,7 @@ async function newPage(b,{time,geo='grant',geoDelay=0,rateMode='ok',routeMode='f
   if(u.host==='localhost:9999'){const f=path.join(ROOT,u.pathname==='/'?'index.html':u.pathname);return fs.existsSync(f)?r.fulfill({body:fs.readFileSync(f),contentType:f.endsWith('.js')?'text/javascript':'text/html'}):r.fulfill({status:404});}
   if(u.host==='dapi.kakao.com')return r.fulfill({body:fs.readFileSync(__dirname+'/mock-kakao.js'),contentType:'text/javascript'});
   if(u.host.includes('vercel.app')){if(rateMode==='down')return r.fulfill({status:500,body:'x'});const id=+u.searchParams.get('id');
-    return r.fulfill({body:JSON.stringify({rating:id%13===0?null:3.5+(id%15)/10,ratingCount:id%13===0?0:5+id%400,reviewCount:id%7*20,hours:hoursFor(id,base),menu:id%4===0?'등심돈까스,김밥,라면':'백반,찌개'}),contentType:'application/json',headers:{'access-control-allow-origin':'*'}});}
+    return r.fulfill({body:JSON.stringify({rating:id%13===0?null:3.5+(id%15)/10,ratingCount:id%13===0?0:5+id%400,reviewCount:id%7*20,hours:hoursFor(id,base),menu:id%4===0?'등심돈까스,김밥,라면':id%8===3?'백반,찌개,김밥,라면,등심돈까스':'백반,찌개'}),contentType:'application/json',headers:{'access-control-allow-origin':'*'}});}
   if(u.host==='routing.openstreetmap.de')return routeMode==='fail'?r.abort():r.fulfill({body:'{}',contentType:'application/json'});
   if(u.host==='api.open-meteo.com')return r.fulfill({body:JSON.stringify({current:{temperature_2m:24,precipitation:0,weather_code:2}}),contentType:'application/json'});
   return r.abort();});
@@ -187,6 +187,10 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   await pg.fill('#query','돈까스');await pg.press('#query','Enter');await settle(pg);
   const r=await pg.evaluate(()=>{const R=window.__jy.state.ranked;return {n:R.length,bad:R.filter(p=>!p.__qHit).map(p=>p.place_name+'|'+p.category_name+'|'+p.__menu)}});
   ok('Q1 "돈까스" 검색 → 돈까스 있는 가게만',r.n>0&&r.bad.length===0,r.n+'곳, 무관 '+r.bad.slice(0,3).join(' / '));
+  const t=await pg.evaluate(()=>{const J=window.__jy,R=J.state.ranked.filter(p=>!p.__named&&p.__rating!=null);const tier=p=>p.__qText||p.__qMain?0:1;
+    return {side:R.filter(p=>tier(p)===1&&!J.isBroadCat(p)).map(p=>p.place_name+'|'+p.category_name),order:R.every((p,i)=>i===0||tier(R[i-1])<=tier(p)),sides:R.filter(p=>tier(p)===1).length}});
+  ok('Q1b 곁들이 메뉴로만 걸린 곳은 분류가 넓은 가게(한식 등)만',t.side.length===0,t.side.slice(0,3).join(' / '));
+  ok('Q1c 전문점·대표 메뉴가 곁들이 메뉴보다 항상 위',t.order,'곁들이 '+t.sides+'곳');
   const why=await pg.evaluate(()=>[...document.querySelectorAll('#pickWhy li')].map(l=>l.textContent).join(' / '));
   ok('Q2 추천 이유에 "대표 메뉴에 돈까스"',/대표 메뉴에 “돈까스”|메뉴판에 “돈까스”/.test(why),why.slice(0,80));
   await pg.fill('#query','맛집');await pg.press('#query','Enter');await settle(pg);
@@ -218,6 +222,18 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   await pg.click('[data-food="western"]');await settle(pg);
   ok('L3 점심 양식 칩에 술집 없음',await pg.evaluate(()=>window.__jy.state.ranked.every(p=>!/술집/.test(p.category_name))));
   ok('L4 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+
+ // ===== 메뉴 검색: 전문점 먼저, 곁들이 메뉴는 넓은 분류만 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('11:40')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  await pg.click('[data-radius="3000"]');await settle(pg);
+  await pg.fill('#query','돈까스');await pg.press('#query','Enter');await settle(pg);
+  const t=await pg.evaluate(()=>{const J=window.__jy,A=J.state.results,R=J.state.ranked.filter(p=>!p.__named&&J.state.ranked.indexOf(p)<J.state.openCount);const tier=p=>p.__qText||p.__qMain?0:1;
+    return {main:R.filter(p=>tier(p)===0).length,sides:R.filter(p=>tier(p)===1).length,bad:A.filter(p=>tier(p)===1&&!J.isBroadCat(p)).map(p=>p.place_name+'|'+p.category_name),order:R.every((p,i)=>i===0||tier(R[i-1])<=tier(p)),none:A.filter(p=>!p.__qHit).length}});
+  ok('M1 넓은 범위 "돈까스": 전문점·대표 메뉴 곳과 곁들이 곳이 모두 있음(테스트 유효)',t.main>0&&t.sides>0,'대표 '+t.main+' · 곁들이 '+t.sides);
+  ok('M2 곁들이 메뉴만으로는 넓은 분류 가게만',t.bad.length===0,t.bad.slice(0,3).join(' / '));
+  ok('M3 대표 메뉴 가게가 곁들이 가게보다 모두 위',t.order);
+  ok('M4 돈까스 없는 가게 0곳',t.none===0,t.none+'곳');
+  ok('M5 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
 
  // ===== 점심에 저녁 전용 가게 제외 =====
  {const {pg,errs,ctx}=await newPage(b,{time:T('12:10')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
