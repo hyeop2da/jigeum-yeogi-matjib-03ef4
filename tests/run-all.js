@@ -38,10 +38,10 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
     const st=await pg.evaluate(()=>({n:document.querySelectorAll('#list .card').length,e:(document.querySelector('#list .empty')||{}).textContent||''}));ok('S1 점심 칩 '+f,st.n>0||st.e.length>0,st.n+'곳 '+st.e.slice(0,30));}
   for(const r of ['335','670','1000','2000','3000','5000']){await pg.click('[data-radius="'+r+'"]');await settle(pg);const far=await pg.evaluate(()=>Math.max(0,...[...document.querySelectorAll('#list .card')].map(c=>{const m=c.querySelector('.distance').textContent.match(/([\d.]+)(k?m)/);return m?+m[1]*(m[2]==='km'?1000:1):0})));ok('S1 거리 '+r+'m 이내',far<=+r*1.05+1,'가장 먼 '+far+'m');}
   await pg.click('[data-meal="dinner"]');await settle(pg);
-  for(const f of ['all','meat','blackpork','sea','jokbal','chicken','stew','chinese','bar']){await pg.click('[data-food="'+f+'"]');await settle(pg);
+  for(const f of ['all','meat','blackpork','sea','jokbal','chicken','stew','chinese','bar']){await pg.click(f==='bar'?'[data-stage="2"]':'[data-food="'+f+'"]');await settle(pg);
     const st=await pg.evaluate(()=>({n:document.querySelectorAll('#list .card').length,e:(document.querySelector('#list .empty')||{}).textContent||''}));ok('S1 저녁 칩 '+f,st.n>0||st.e.length>0,st.n+'곳 '+st.e.slice(0,30));}
   for(const s of ['company','quiet','light']){await pg.click('[data-sit="'+s+'"]');await pg.waitForTimeout(200);}
-  await pg.click('[data-food="all"]');await settle(pg);
+  await pg.click('[data-stage="1"]');await settle(pg);
   for(const s of ['company','friends','family','guest']){await pg.click('[data-sit="'+s+'"]');await pg.waitForTimeout(200);}
   ok('S1 오류 없음',errs.length===0,errs.join(' | '));await ctx.close();}
  // S2 위치 거부
@@ -78,7 +78,7 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
  // S7 08:30 아침 2차/카페 · 22:30
  for(const [t,label] of [['08:30','아침'],['22:30','밤']]){const {pg,errs,ctx}=await newPage(b,{time:T(t)});await pg.goto('http://localhost:9999/');await pg.waitForTimeout(2500);await settle(pg);
   const lbl=await pg.evaluate(()=>document.getElementById('pickLabel').textContent);ok('S7 '+label+' 점심 추천 문구',t==='08:30'?/오늘/.test(lbl):/내일/.test(lbl),lbl);
-  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-food="bar"]');await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-stage="2"]');await settle(pg);
   const s=await pg.evaluate(()=>({lbl:document.getElementById('pickLabel').textContent,sum:document.getElementById('summary').textContent}));ok('S7 '+label+' 2차 술집: 갈 수 있으면 추천, 다 닫았으면 🔴 표시',/👑|👉|🔎/.test(s.lbl)||(/🔴/.test(s.lbl)&&/못 가는 곳/.test(s.sum)),s.lbl+' / '+s.sum.slice(-30));
   ok('S7 '+label+' 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
  // S8 평점 서버 다운
@@ -305,13 +305,13 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   const sh=await pg.evaluate(()=>document.getElementById('shareText').value);
   ok('B27 공유 글: 1차 → 2차',/2차 여기 어때요/.test(sh)&&sh.includes('1차 연동갈비 → 🍺 2차 '+pickName)&&/연동갈비에서/.test(sh),sh.split('\n').slice(0,4).join(' / '));
   await pg.click('#shareClose');
-  await pg.click('[data-food="all"]');await settle(pg);
+  await pg.click('[data-stage="1"]');await settle(pg);
   const a1=await pg.evaluate(()=>({at:window.__jy.state.atFirst,loc:document.getElementById('locState').textContent,sit:window.__jy.state.situation,bar:document.getElementById('firstBar').textContent,kinds:document.getElementById('barKindChips').hidden}));
   ok('B28 1차 메뉴로 돌아가면 원래 위치·상황 복원',a1.at===null&&/현재 위치/.test(a1.loc)&&a1.sit==='company'&&a1.kinds,JSON.stringify(a1));
   ok('B29 표시줄: 1차 → 2차',a1.bar.includes('연동갈비')&&a1.bar.includes(pickName),a1.bar);
   await pg.click('[data-meal="lunch"]');await settle(pg);
   ok('B30 점심엔 1차·2차 표시 없음',await pg.evaluate(()=>document.getElementById('firstBar').hidden&&document.getElementById('secondBtn').hidden&&/점심/.test(document.getElementById('decideBtn').textContent)));
-  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-food="bar"]');await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-stage="2"]');await settle(pg);
   ok('B31 2차 칩을 누르면 기본 출발은 1차 근처',await pg.evaluate(()=>window.__jy.state.atFirst==='40100'));
   await pg.click('[data-firstx]');await settle(pg);
   const x1=await pg.evaluate(()=>({f:localStorage.getItem('jy-dinner-first'),at:window.__jy.state.atFirst,loc:document.getElementById('locState').textContent,bar:document.getElementById('firstBar').textContent,dec:document.getElementById('decideBtn').hidden}));
@@ -321,7 +321,7 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
  {const {pg,errs,ctx}=await newPage(b,{time:T('22:30')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(1500);
   await pg.evaluate(()=>{const d=new Date();d.setHours(19,0,0,0);localStorage.setItem('jy-dinner-first',JSON.stringify({id:'40100',name:'연동갈비',lat:33.488,lng:126.499,kind:'meat',ts:d.getTime()}));});
   await pg.reload();await pg.waitForTimeout(2500);await settle(pg);
-  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-food="bar"]');await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-stage="2"]');await settle(pg);
   const n1=await pg.evaluate(()=>{const S=window.__jy.state,g=id=>S.ranked.find(p=>p.id===id);const c=g('40013'),e=g('40010'),k=g('40003');
     return {at:S.atFirst,soon:c?c.__s.minus.join('|')+' ok='+c.__s.mealOk:'없음',early:e?e.__s.mealOk:'없음',kiro:k?k.__s.mealOk:'없음'}});
   ok('N1 밤에도 1차 근처에서 2차',n1.at==='40100',n1.at);
@@ -343,7 +343,7 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   await pg.reload();await pg.waitForTimeout(2500);await settle(pg);
   await pg.click('[data-meal="dinner"]');await settle(pg);
   ok('O1 어제 1차 기록은 무시',await pg.evaluate(()=>document.getElementById('firstBar').hidden&&document.getElementById('secondBtn').hidden));
-  await pg.click('[data-food="bar"]');await settle(pg);
+  await pg.click('[data-stage="2"]');await settle(pg);
   ok('O2 2차 칩: 1차 없으면 내 위치 기준 + 안내',await pg.evaluate(()=>window.__jy.state.atFirst===null&&/1차 가게에서/.test(document.getElementById('firstBar').textContent)&&document.getElementById('decideBtn').hidden));
   ok('O3 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
 
@@ -370,6 +370,27 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   await pg.click('[data-meal="lunch"]');await settle(pg);
   ok('R9 점심으로 돌아오면 이번 주 점심 다시 보임',await pg.evaluate(()=>!document.getElementById('history').hidden));
   ok('R10 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+
+ // ===== 저녁 1차·2차 탭 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('19:00')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  ok('ST1 점심엔 1차·2차 탭 없음',await pg.evaluate(()=>document.getElementById('stageTabs').hidden));
+  await pg.click('[data-meal="dinner"]');await settle(pg);
+  const a=await pg.evaluate(()=>({tabs:!document.getElementById('stageTabs').hidden,on:document.querySelector('[data-stage].on')?.dataset.stage,barChip:!!document.querySelector('#foodChips [data-food="bar"]'),food:!document.getElementById('foodChips').hidden,kinds:document.getElementById('barKindChips').hidden}));
+  ok('ST2 저녁: 탭 보임 · 1차 선택 · 메뉴 줄에 2차 칩 없음',a.tabs&&a.on==='1'&&!a.barChip&&a.food&&a.kinds,JSON.stringify(a));
+  await pg.click('[data-food="sea"]');await settle(pg);
+  await pg.click('[data-stage="2"]');await settle(pg);
+  const c=await pg.evaluate(()=>({on:document.querySelector('[data-stage].on')?.dataset.stage,food:window.__jy.state.food,foodRow:document.getElementById('foodChips').hidden,kinds:!document.getElementById('barKindChips').hidden,step:document.getElementById('foodStep').textContent,n:window.__jy.state.ranked.length,bad:window.__jy.state.ranked.filter(p=>!window.__jy.isBarPlace(p)).length}));
+  ok('ST3 2차 탭: 1차 메뉴 줄 숨김 · 2차 종류 칩 · 술집만',c.on==='2'&&c.food==='bar'&&c.foodRow&&c.kinds&&/2차는 어떤 곳/.test(c.step)&&c.n>0&&c.bad===0,JSON.stringify(c));
+  await pg.click('[data-stage="1"]');await settle(pg);
+  const d=await pg.evaluate(()=>({on:document.querySelector('[data-stage].on')?.dataset.stage,food:window.__jy.state.food,active:document.querySelector('#foodChips .chip.active')?.dataset.food,row:!document.getElementById('foodChips').hidden,step:document.getElementById('foodStep').textContent}));
+  ok('ST4 1차 탭으로 돌아오면 고르던 메뉴(회·해산물) 그대로',d.on==='1'&&d.food==='sea'&&d.active==='sea'&&d.row&&/1차 메뉴/.test(d.step),JSON.stringify(d));
+  await pg.click('[data-stage="1"]');await pg.waitForTimeout(300);
+  ok('ST5 같은 탭 다시 눌러도 그대로',await pg.evaluate(()=>window.__jy.state.food==='sea'));
+  await pg.click('[data-stage="2"]');await settle(pg);await pg.click('#resetBtn');await settle(pg);
+  ok('ST6 2차에서 초기화 → 1차 탭 · 전체',await pg.evaluate(()=>document.querySelector('[data-stage].on')?.dataset.stage==='1'&&window.__jy.state.food==='all'&&!document.getElementById('foodChips').hidden));
+  await pg.click('[data-stage="2"]');await settle(pg);await pg.click('[data-meal="lunch"]');await settle(pg);
+  ok('ST7 2차에서 점심으로 → 탭 숨김 · 점심 메뉴 줄',await pg.evaluate(()=>document.getElementById('stageTabs').hidden&&!document.getElementById('foodChips').hidden&&document.getElementById('barKindChips').hidden&&window.__jy.state.food==='all'));
+  ok('ST8 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
 
  await b.close();
  const f=results.filter(r=>r[0]==='FAIL');for(const r of results) console.log(r[0],r[1],r[2]?'· '+r[2]:'');console.log('\n총',results.length,'항목 / 실패',f.length);
