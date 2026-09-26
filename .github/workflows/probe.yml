@@ -12,5 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm i playwright@1.47.2 && npx playwright install --with-deps chromium
+      - name: Wait for Pages deploy
+        run: |
+          for i in $(seq 1 40); do curl -fsS "https://hyeop2da.github.io/jigeum-yeogi-matjib-03ef4/?t=$(date +%s)" -o page.html && grep -q "2026-09-26-2cha" page.html && break; sleep 10; done
       - run: node tests/live-probe.js > out.txt 2>&1 || true
       - run: cat out.txt

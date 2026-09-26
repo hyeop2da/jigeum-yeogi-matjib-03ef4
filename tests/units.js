@@ -206,5 +206,84 @@ t('휴무는 살짝만 감점(0~6점)',sOpen-sOff>=0&&sOpen-sOff<=6,(sOpen-sOff)
 
 const QS=(o)=>J.scorePlace(Object.assign({id:'q',place_name:'가게',category_name:'음식점 > 한식',category_group_code:'FD6',distance:300,__rating:4.5,__ratingCount:100,__reviewCount:10,__hours:null,__qHit:true},o),'냉면').score;
 t('검색 순위: 냉면집(이름) > 대표 메뉴 냉면 > 곁들이 냉면',QS({__qText:true})>QS({__qMenu:true,__qMain:true})&&QS({__qMenu:true,__qMain:true})>QS({__qMenu:true,__qMain:false}));
+
+// ── 2차 술집 ──
+const B=(name,cat,menu,code)=>Object.assign(P(name,cat,code),{__menu:menu||''});
+const bp=[
+ ['2차: 호프 분류',B('헐크호프','음식점 > 술집 > 호프,요리주점'),true],
+ ['2차: 실내포장마차',B('다락포차','음식점 > 술집 > 실내포장마차'),true],
+ ['2차: 오뎅바(투다리)',B('투다리 남서울점','음식점 > 술집 > 오뎅바 > 투다리'),true],
+ ['2차: 이름에 호프가 있는 치킨집',B('동우통닭호프','음식점 > 치킨'),true],
+ ['2차: 그냥 치킨집(배달) 제외',B('교촌치킨 연동점','음식점 > 치킨 > 교촌치킨'),false],
+ ['2차: 빈대떡집(분류 한식)',B('미복빈대떡','음식점 > 한식'),true],
+ ['2차: 막걸리집',B('누룩막걸리','음식점 > 한식'),true],
+ ['2차: 홀덤펍(카드 게임장) 제외',B('엠박스홀덤펍','음식점 > 술집 > 호프,요리주점'),false],
+ ['2차: 유흥주점 제외',B('이자카야파티룸','가정,생활 > 유흥시설 > 유흥주점',null,''),false],
+ ['2차: 노래방 제외',B('연동노래방','가정,생활 > 여가시설 > 노래방',null,''),false],
+ ['2차: 고깃집 아님',B('돗담','음식점 > 한식 > 육류,고기 > 삼겹살'),false],
+ ['2차: 카페 아님',B('커피비터스윗','음식점 > 카페',null,'CE7'),false],
+ ['2차: 라이브카페 아님',B('쏭스라이브','음식점 > 카페 > 테마카페 > 라이브카페',null,'CE7'),false]
+];
+bp.forEach(([n,p,exp])=>t(n,J.isBarPlace(p)===exp,J.isBarPlace(p)));
+const K=(name,cat,menu)=>[...J.barKinds(B(name,cat,menu))].sort().join(',');
+const kc=[
+ ['종류: 이름에 호프 → 호프·맥주만',K('헐크호프','음식점 > 술집 > 호프,요리주점',''),'beer'],
+ ['종류: 이름 없는 요리주점 → 포차·요리주점',K('솔담','음식점 > 술집 > 호프,요리주점','골뱅이무침,두부김치,계란말이'),'pocha'],
+ ['종류: 메뉴가 노가리·먹태면 맥주도',K('안트래','음식점 > 술집 > 호프,요리주점','황도,먹태,노가리'),'beer,pocha'],
+ ['종류: 실내포장마차 + 파전 대표 → 포차·전',K('인생포차','음식점 > 술집 > 실내포장마차','해물파전,황도,마른안주'),'jeon,pocha'],
+ ['종류: 일본식주점 → 이자카야',K('키로','음식점 > 술집 > 일본식주점','스키야키,가라아게'),'izakaya'],
+ ['종류: 투다리 → 이자카야·포차',K('투다리','음식점 > 술집 > 오뎅바 > 투다리','꼬치'),'izakaya,pocha'],
+ ['종류: 칵테일바 → 와인·칵테일',K('프리베','음식점 > 술집 > 칵테일바','칵테일,위스키'),'wine'],
+ ['종류: 와인바 → 와인·칵테일',K('와인한잔','음식점 > 술집 > 와인바',''),'wine'],
+ ['종류: 빈대떡집 → 전·막걸리',K('미복빈대떡','음식점 > 한식','녹두빈대떡,막걸리'),'jeon'],
+ ['종류: 치킨호프 → 호프·맥주',K('동우통닭호프','음식점 > 치킨','후라이드,생맥주'),'beer'],
+ ['종류: "전복" 메뉴는 전 아님',K('바다포차','음식점 > 술집 > 실내포장마차','전복,소라'),'pocha']
+];
+kc.forEach(([n,g,e])=>t(n,g===e,g));
+// 늦게까지 여는지
+t('밤 영업: 18~02시 → 26:00',J.closeTonight(H('18:00~02:00'),at(20,0))===26*60,J.closeTonight(H('18:00~02:00'),at(20,0)));
+t('밤 영업: 새벽 1시엔 어젯밤 영업 기준',J.closeTonight(H('18:00~02:00'),at(1,0))===26*60,J.closeTonight(H('18:00~02:00'),at(1,0)));
+t('밤 영업: 23시 마감',J.closeTonight(H('17:00~23:00'),at(20,0))===23*60);
+t('밤 영업: 점심 장사만 하면 없음',J.closeTonight(H('11:00~15:00'),at(20,0))===null);
+t('밤 영업: 모르면 없음',J.closeTonight(null,at(20,0))===null);
+// 2차 시간 판단: 20시 전에는 오늘 밤(20~23시)에 여는지, 20시부터는 지금
+const bo=(h,hh,mm)=>J.mealOpen(H(h),'dinner',at(hh,mm),'bar');
+t('2차 19시: 17~24시 술집 → 오늘 밤 영업',bo('17:00~24:00',19,0).ok===true&&bo('17:00~24:00',19,0).now!==true);
+t('2차 19시: 20:30 마감 → 못 감',bo('16:00~20:30',19,0).ok===false);
+t('2차 19시: 20시 오픈 바 → 갈 수 있음',bo('20:00~05:00',19,0).ok===true);
+t('2차 21시: 17~24시 → 지금 영업',bo('17:00~24:00',21,0).ok===true&&bo('17:00~24:00',21,0).now===true);
+t('2차 21시: 20:30 마감 → 못 감',bo('16:00~20:30',21,0).ok===false);
+t('2차 새벽 2시: 05시까지 → 지금 영업',bo('17:00~05:00',2,0).ok===true);
+// 1차 종류
+const FK=(name,cat)=>J.firstKindOf(P(name,cat));
+t('1차 종류: 갈비 → 고기',FK('연동갈비','음식점 > 한식 > 육류,고기 > 갈비')==='meat');
+t('1차 종류: 흑돼지 → 고기',FK('돈사돈','음식점 > 한식 > 육류,고기 > 흑돼지')==='meat');
+t('1차 종류: 횟집 → 회',FK('바다횟집','음식점 > 한식 > 해물,생선 > 회')==='sea');
+t('1차 종류: 족발 → 족발',FK('엄지족발','음식점 > 한식 > 육류,고기 > 족발,보쌈')==='jokbal');
+t('1차 종류: 치킨 → 치킨',FK('교촌치킨','음식점 > 치킨 > 교촌치킨')==='chicken');
+t('1차 종류: 샤브 → 전골',FK('샤브향','음식점 > 한식 > 샤브샤브')==='stew'||FK('샤브향','음식점 > 샤브샤브')==='stew',FK('샤브향','음식점 > 샤브샤브'));
+t('1차 종류: 중식 → 중식',FK('홍보석','음식점 > 중식 > 중국요리')==='chinese');
+t('1차 종류: 술집 → 술집',FK('키로','음식점 > 술집 > 일본식주점')==='bar');
+// 2차 점수: 1차가 고기면 고깃집 술집은 내리고 맥주·이자카야는 올린다
+const keep2={meal:st.meal,food:st.food,situation:st.situation};
+Object.assign(st,{meal:'dinner',food:'bar',situation:'company'});
+const firstKeep=localStorage.getItem('jy-dinner-first');
+const ev=new Date();ev.setHours(19,0,0,0);
+localStorage.setItem('jy-dinner-first',JSON.stringify({id:'f1',name:'연동갈비',lat:33.488,lng:126.499,kind:'meat',ts:ev.getTime()}));
+const BS=o=>J.scorePlace(Object.assign({id:String(Math.random()),place_name:'술집',category_name:'음식점 > 술집 > 호프,요리주점',category_group_code:'FD6',distance:200,__rating:4.5,__ratingCount:50,__reviewCount:5,__hours:null,__menu:''},o),'');
+const sMeat=BS({place_name:'고기굽는술집',__menu:'삼겹살,목살'}), sBeer=BS({place_name:'연동호프',__menu:'생맥주,노가리'});
+t('2차 짝: 1차 고기 → 고깃집 술집 < 호프',sMeat.score<sBeer.score,sMeat.score.toFixed(1)+' vs '+sBeer.score.toFixed(1));
+t('2차 짝: 겹침 안내',sMeat.minus.some(x=>/1차 메뉴\(고기\)와 겹쳐요/.test(x)),sMeat.minus.join('|'));
+t('2차 짝: 어울림 안내',sBeer.plus.some(x=>/1차가 고기였으니/.test(x)),sBeer.plus.join('|'));
+t('2차 늦게까지: 새벽 배지',BS({__hours:{days:[-1,0,1].map(i=>{const d=new Date();d.setDate(d.getDate()+i);return {d:dk(d),h:'18:00~04:00'}})}}).badges.some(b=>/새벽 04:00까지/.test(b[1])));
+Object.assign(st,{situation:'quiet'});
+t('2차 조용히: 칵테일바 > 호프',BS({category_name:'음식점 > 술집 > 칵테일바',place_name:'프리베'}).score>BS({place_name:'연동호프',__menu:'생맥주'}).score);
+Object.assign(st,{situation:'light'});
+t('2차 가볍게: 호프 > 칵테일바',BS({place_name:'연동호프',__menu:'생맥주'}).score>BS({category_name:'음식점 > 술집 > 칵테일바',place_name:'프리베'}).score);
+if(firstKeep==null) localStorage.removeItem('jy-dinner-first'); else localStorage.setItem('jy-dinner-first',firstKeep);
+t('1차 기록: 지난 저녁 기록은 무시',(()=>{const y=new Date();y.setDate(y.getDate()-1);y.setHours(19,0,0,0);const k=localStorage.getItem('jy-dinner-first');localStorage.setItem('jy-dinner-first',JSON.stringify({id:'x',name:'x',lat:1,lng:1,ts:y.getTime()}));const r=J.loadFirst();if(k==null)localStorage.removeItem('jy-dinner-first');else localStorage.setItem('jy-dinner-first',k);return r===null})());
+t('1차 기록: 좌표가 없으면 무시',(()=>{const k=localStorage.getItem('jy-dinner-first');localStorage.setItem('jy-dinner-first',JSON.stringify({id:'x',name:'x',ts:Date.now()}));const r=J.loadFirst();if(k==null)localStorage.removeItem('jy-dinner-first');else localStorage.setItem('jy-dinner-first',k);return r===null})());
+t('1차 기록: 깨진 저장값도 오류 없음',(()=>{const k=localStorage.getItem('jy-dinner-first');localStorage.setItem('jy-dinner-first','{깨짐');let r;try{r=J.loadFirst()}catch(e){r='ERR'}if(k==null)localStorage.removeItem('jy-dinner-first');else localStorage.setItem('jy-dinner-first',k);return r===null})());
+Object.assign(st,keep2);
 Object.assign(st,keepS);
 return R;};

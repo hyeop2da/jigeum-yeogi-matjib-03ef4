@@ -1,6 +1,8 @@
 const {chromium}=(()=>{try{return require('playwright')}catch(e){return require('/opt/node22/lib/node_modules/playwright')}})();const fs=require('fs'),path=require('path');
 const ROOT=process.argv[2]||path.resolve(__dirname,'..');
 const results=[];const ok=(name,cond,info='')=>{results.push([cond?'PASS':'FAIL',name,info]);};
+const {BARS,FIRST}=require('./bars-data.js');
+function barHours(h,base){const days=[];for(let k=-1;k<7;k++){const d=new Date(base.getTime()+k*864e5);days.push({d:(d.getMonth()+1)+'/'+d.getDate(),h});}return {days};}
 function hoursFor(id,base){const days=[];const H=['11:00~21:00','17:00~24:00','06:00~14:30','10:00~22:00','11:30~20:00'];
  for(let k=-1;k<7;k++){const d=new Date(base.getTime()+k*864e5);const key=(d.getMonth()+1)+'/'+d.getDate();days.push(id%11===0&&k===0?{d:key,off:1}:{d:key,h:H[id%5],...(id%5===4?{b:['15:00~17:00']}:{})});}return {days};}
 async function newPage(b,{time,geo='grant',geoDelay=0,rateMode='ok',routeMode='fail',ua}){
@@ -14,8 +16,10 @@ async function newPage(b,{time,geo='grant',geoDelay=0,rateMode='ok',routeMode='f
  },[geo,geoDelay]);
  await pg.route('**/*',async r=>{const u=new URL(r.request().url());
   if(u.host==='localhost:9999'){const f=path.join(ROOT,u.pathname==='/'?'index.html':u.pathname);return fs.existsSync(f)?r.fulfill({body:fs.readFileSync(f),contentType:f.endsWith('.js')?'text/javascript':'text/html'}):r.fulfill({status:404});}
-  if(u.host==='dapi.kakao.com')return r.fulfill({body:fs.readFileSync(__dirname+'/mock-kakao.js'),contentType:'text/javascript'});
+  if(u.host==='dapi.kakao.com')return r.fulfill({body:'window.__BARS='+JSON.stringify(BARS)+';\n'+fs.readFileSync(__dirname+'/mock-kakao.js','utf8'),contentType:'text/javascript'});
   if(u.host.includes('vercel.app')){if(rateMode==='down')return r.fulfill({status:500,body:'x'});const id=+u.searchParams.get('id');
+    const bar=BARS.find(x=>+x.id===id);
+    if(bar) return r.fulfill({body:JSON.stringify({rating:bar.rating,ratingCount:bar.cnt,reviewCount:10,hours:barHours(bar.h,base),menu:bar.menu}),contentType:'application/json',headers:{'access-control-allow-origin':'*'}});
     return r.fulfill({body:JSON.stringify({rating:id%13===0?null:3.5+(id%15)/10,ratingCount:id%13===0?0:5+id%400,reviewCount:id%7*20,hours:hoursFor(id,base),menu:id%4===0?'등심돈까스,김밥,라면':id%8===3?'백반,찌개,김밥,라면,등심돈까스':'백반,찌개'}),contentType:'application/json',headers:{'access-control-allow-origin':'*'}});}
   if(u.host==='routing.openstreetmap.de')return routeMode==='fail'?r.abort():r.fulfill({body:'{}',contentType:'application/json'});
   if(u.host==='api.open-meteo.com')return r.fulfill({body:JSON.stringify({current:{temperature_2m:24,precipitation:0,weather_code:2}}),contentType:'application/json'});
@@ -36,6 +40,8 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   await pg.click('[data-meal="dinner"]');await settle(pg);
   for(const f of ['all','meat','blackpork','sea','jokbal','chicken','stew','chinese','bar']){await pg.click('[data-food="'+f+'"]');await settle(pg);
     const st=await pg.evaluate(()=>({n:document.querySelectorAll('#list .card').length,e:(document.querySelector('#list .empty')||{}).textContent||''}));ok('S1 저녁 칩 '+f,st.n>0||st.e.length>0,st.n+'곳 '+st.e.slice(0,30));}
+  for(const s of ['company','quiet','light']){await pg.click('[data-sit="'+s+'"]');await pg.waitForTimeout(200);}
+  await pg.click('[data-food="all"]');await settle(pg);
   for(const s of ['company','friends','family','guest']){await pg.click('[data-sit="'+s+'"]');await pg.waitForTimeout(200);}
   ok('S1 오류 없음',errs.length===0,errs.join(' | '));await ctx.close();}
  // S2 위치 거부
@@ -109,7 +115,7 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   ok('X1 중식은 저녁에도 유지',await pg.evaluate(()=>document.querySelector('[data-food="chinese"]').classList.contains('active')));
   await pg.click('[data-meal="lunch"]');await settle(pg);await pg.click('[data-food="cafe"]');await settle(pg);await pg.click('[data-meal="dinner"]');await settle(pg);
   ok('X2 카페는 저녁에 없어 전체로',await pg.evaluate(()=>document.querySelector('[data-food="all"]').classList.contains('active')));
-  ok('X3 저녁엔 결정 버튼 숨김',await pg.evaluate(()=>document.getElementById('decideBtn').hidden));
+  ok('X3 저녁엔 "1차 결정" 버튼',await pg.evaluate(()=>{const b=document.getElementById('decideBtn');return !b.hidden&&/1차/.test(b.textContent)}),await pg.evaluate(()=>document.getElementById('decideBtn').textContent));
   ok('X4 저녁 상황 칩 4개',await pg.evaluate(()=>document.querySelectorAll('[data-sit]').length===4));
   await pg.click('[data-meal="lunch"]');await settle(pg);
   ok('X5 점심 상황 칩 3개',await pg.evaluate(()=>document.querySelectorAll('[data-sit]').length===3));
@@ -243,6 +249,104 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   const d=await pg.evaluate(()=>{const J=window.__jy;return J.state.ranked.filter(p=>J.neverInSlot(p.__hours,J.MEAL_SLOT.lunch)).length});
   ok('D2 저녁엔 저녁 전용 가게 나옴',d>0,d+'곳');
   ok('D3 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+ // ===== 저녁 1차 → 2차 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('19:00')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);
+  ok('B0 1차 기록 전: 1차 안내 없음·2차 버튼 숨김',await pg.evaluate(()=>document.getElementById('firstBar').hidden&&document.getElementById('secondBtn').hidden));
+  await pg.fill('#query','연동갈비');await pg.press('#query','Enter');await settle(pg);
+  ok('B1 1차 가게 찾음',await pg.evaluate(()=>document.getElementById('pickName').textContent==='연동갈비'),await pg.evaluate(()=>document.getElementById('pickName').textContent));
+  await pg.click('#decideBtn');await pg.waitForTimeout(300);
+  const f1=await pg.evaluate(()=>JSON.parse(localStorage.getItem('jy-dinner-first')||'null'));
+  ok('B2 1차 기록 저장(좌표·종류)',f1&&f1.id==='40100'&&f1.kind==='meat'&&Math.abs(f1.lat-33.488)<0.001,JSON.stringify(f1));
+  ok('B3 안내: 오늘 1차',await pg.evaluate(()=>/오늘 1차: 연동갈비/.test(document.getElementById('toast').textContent)),await pg.evaluate(()=>document.getElementById('toast').textContent));
+  ok('B4 "1차 근처에서 2차 찾기" 버튼',await pg.evaluate(()=>{const b=document.getElementById('secondBtn');return !b.hidden&&/연동갈비/.test(b.textContent)}));
+  ok('B5 오늘 1차 표시줄',await pg.evaluate(()=>{const e=document.getElementById('firstBar');return !e.hidden&&/오늘 1차 연동갈비/.test(e.textContent)}));
+  await pg.click('#secondBtn');await settle(pg);
+  const s1=await pg.evaluate(()=>{const J=window.__jy,S=J.state;return {food:S.food,at:S.atFirst,loc:document.getElementById('locState').textContent,radius:S.radius,
+    ids:S.ranked.map(p=>p.id),bad:S.ranked.filter(p=>!J.isBarPlace(p)).map(p=>p.place_name),far:S.ranked.filter(p=>p.distance>S.radius+5).map(p=>p.place_name+' '+Math.round(p.distance)),
+    label:document.getElementById('pickLabel').textContent,sit:S.situation,chips:[...document.querySelectorAll('[data-sit]')].map(b=>b.dataset.sit).join(','),kinds:!document.getElementById('barKindChips').hidden}});
+  ok('B6 2차로 전환 + 1차 가게 기준',s1.food==='bar'&&s1.at==='40100'&&/1차 연동갈비/.test(s1.loc),JSON.stringify([s1.food,s1.at,s1.loc]));
+  ok('B7 1차 근처 기본 거리 도보 5~10분',s1.radius<=670,s1.radius);
+  ok('B8 2차 목록은 술집만',s1.ids.length>0&&s1.bad.length===0,s1.ids.length+'곳 '+s1.bad.join(','));
+  ok('B9 1차 가게·홀덤펍·노래방·먼 가게는 빠짐',!['40100','40008','40014','40015'].some(i=>s1.ids.includes(i)),s1.ids.join(','));
+  ok('B10 거리는 1차 가게에서 잰 것',s1.far.length===0&&['40001','40002','40003'].every(i=>s1.ids.includes(i)),s1.far.join(','));
+  ok('B11 추천 문구: 1차 다음 2차',/1차 연동갈비 다음/.test(s1.label),s1.label);
+  ok('B12 2차 상황 칩(회식 2차·조용히·가볍게) + 종류 칩',s1.chips==='company,quiet,light'&&s1.sit==='company'&&s1.kinds,s1.chips+' / '+s1.sit);
+  const s2=await pg.evaluate(()=>{const S=window.__jy.state,g=id=>S.ranked.find(p=>p.id===id),i=id=>S.ranked.findIndex(p=>p.id===id);
+    const meat=g('40009'),beer=g('40001'),moon=g('40002'),early=g('40010');
+    return {meatMinus:meat?meat.__s.minus.join('|'):'없음',order:[i('40001'),i('40009')],beerPlus:beer?beer.__s.plus.join('|'):'',moon:moon?moon.__s.badges.map(b=>b[1]).join(','):'',early:early?early.__s.mealOk:'없음'}});
+  ok('B13 1차 고기 → 고깃집 술집은 "겹쳐요"',/1차 메뉴\(고기\)와 겹쳐요/.test(s2.meatMinus),s2.meatMinus);
+  ok('B14 1차 고기 → 호프가 고깃집 술집보다 위',s2.order[0]>=0&&(s2.order[1]<0||s2.order[0]<s2.order[1]),s2.order.join(' vs '));
+  ok('B15 호프에 "1차가 고기였으니" 이유',/1차가 고기였으니/.test(s2.beerPlus),s2.beerPlus.slice(0,120));
+  ok('B16 새벽까지 여는 포차 배지',/새벽 05:00까지/.test(s2.moon),s2.moon);
+  ok('B17 20:30 마감 호프는 오늘 밤 못 감',s2.early===false,String(s2.early));
+  const kindCheck=async(k,must,mustNot)=>{await pg.click('[data-barkind="'+k+'"]');await pg.waitForTimeout(300);
+    return pg.evaluate(([k,must,mustNot])=>{const J=window.__jy,R=J.state.ranked;return {n:R.length,all:R.every(p=>J.barKinds(p).has(k)),must:must.every(id=>R.some(p=>p.id===id)),not:mustNot.every(id=>!R.some(p=>p.id===id)),names:R.map(p=>p.place_name).join(',')}},[k,must,mustNot]);};
+  let kr=await kindCheck('izakaya',['40003','40011'],['40001','40004']);ok('B18 종류 이자카야',kr.all&&kr.must&&kr.not,kr.names);
+  kr=await kindCheck('wine',['40004','40005'],['40001','40003']);ok('B19 종류 와인·칵테일',kr.all&&kr.must&&kr.not,kr.names);
+  kr=await kindCheck('jeon',['40006','40002'],['40004']);ok('B20 종류 전·막걸리(빈대떡집·파전 포차)',kr.all&&kr.must&&kr.not,kr.names);
+  kr=await kindCheck('beer',['40001','40007'],['40003','40004']);ok('B21 종류 호프·맥주(치킨호프 포함)',kr.all&&kr.must&&kr.not,kr.names);
+  kr=await kindCheck('pocha',['40002','40009'],['40004']);ok('B22 종류 포차·요리주점',kr.all&&kr.must&&kr.not,kr.names);
+  await pg.click('[data-barkind="all"]');await pg.waitForTimeout(300);
+  await pg.click('[data-sit="quiet"]');await pg.waitForTimeout(300);
+  const qk=await pg.evaluate(()=>{const J=window.__jy,p=J.state.ranked[J.state.pickIdx];return p?[...J.barKinds(p)].join(',')+' '+p.place_name:''});
+  ok('B23 조용히 한잔 → 와인·칵테일·이자카야 추천',/wine|izakaya/.test(qk),qk);
+  await pg.click('[data-sit="company"]');await pg.waitForTimeout(300);
+  await pg.click('[data-from="here"]');await settle(pg);
+  const h1=await pg.evaluate(()=>({at:window.__jy.state.atFirst,from:window.__jy.state.barFrom,loc:document.getElementById('locState').textContent,food:window.__jy.state.food}));
+  ok('B24 출발 "내 위치"로 바꾸면 원래 위치 기준',h1.at===null&&h1.from==='here'&&/현재 위치/.test(h1.loc)&&h1.food==='bar',JSON.stringify(h1));
+  await pg.click('[data-from="first"]');await settle(pg);
+  ok('B25 다시 1차 근처로',await pg.evaluate(()=>window.__jy.state.atFirst==='40100'&&/1차 연동갈비/.test(document.getElementById('locState').textContent)));
+  const pickName=await pg.evaluate(()=>document.getElementById('pickName').textContent);
+  await pg.click('#decideBtn');await pg.waitForTimeout(300);
+  const f2=await pg.evaluate(()=>JSON.parse(localStorage.getItem('jy-dinner-first')||'null'));
+  ok('B26 2차 결정 → 1차 기록에 2차 저장',f2&&f2.second&&f2.second.name===pickName,JSON.stringify(f2&&f2.second));
+  await pg.click('#shareBtn');await pg.waitForTimeout(200);
+  const sh=await pg.evaluate(()=>document.getElementById('shareText').value);
+  ok('B27 공유 글: 1차 → 2차',/2차 여기 어때요/.test(sh)&&sh.includes('1차 연동갈비 → 🍺 2차 '+pickName)&&/연동갈비에서/.test(sh),sh.split('\n').slice(0,4).join(' / '));
+  await pg.click('#shareClose');
+  await pg.click('[data-food="all"]');await settle(pg);
+  const a1=await pg.evaluate(()=>({at:window.__jy.state.atFirst,loc:document.getElementById('locState').textContent,sit:window.__jy.state.situation,bar:document.getElementById('firstBar').textContent,kinds:document.getElementById('barKindChips').hidden}));
+  ok('B28 1차 메뉴로 돌아가면 원래 위치·상황 복원',a1.at===null&&/현재 위치/.test(a1.loc)&&a1.sit==='company'&&a1.kinds,JSON.stringify(a1));
+  ok('B29 표시줄: 1차 → 2차',a1.bar.includes('연동갈비')&&a1.bar.includes(pickName),a1.bar);
+  await pg.click('[data-meal="lunch"]');await settle(pg);
+  ok('B30 점심엔 1차·2차 표시 없음',await pg.evaluate(()=>document.getElementById('firstBar').hidden&&document.getElementById('secondBtn').hidden&&/점심/.test(document.getElementById('decideBtn').textContent)));
+  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-food="bar"]');await settle(pg);
+  ok('B31 2차 칩을 누르면 기본 출발은 1차 근처',await pg.evaluate(()=>window.__jy.state.atFirst==='40100'));
+  await pg.click('[data-firstx]');await settle(pg);
+  const x1=await pg.evaluate(()=>({f:localStorage.getItem('jy-dinner-first'),at:window.__jy.state.atFirst,loc:document.getElementById('locState').textContent,bar:document.getElementById('firstBar').textContent,dec:document.getElementById('decideBtn').hidden}));
+  ok('B32 1차 지우기 → 원래 위치 + 안내 문구',(x1.f===null||x1.f==='null')&&x1.at===null&&/현재 위치/.test(x1.loc)&&/1차 가게에서/.test(x1.bar)&&x1.dec,JSON.stringify(x1));
+  ok('B33 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+ // 밤 22:30: 곧 닫는 술집
+ {const {pg,errs,ctx}=await newPage(b,{time:T('22:30')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(1500);
+  await pg.evaluate(()=>{const d=new Date();d.setHours(19,0,0,0);localStorage.setItem('jy-dinner-first',JSON.stringify({id:'40100',name:'연동갈비',lat:33.488,lng:126.499,kind:'meat',ts:d.getTime()}));});
+  await pg.reload();await pg.waitForTimeout(2500);await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-food="bar"]');await settle(pg);
+  const n1=await pg.evaluate(()=>{const S=window.__jy.state,g=id=>S.ranked.find(p=>p.id===id);const c=g('40013'),e=g('40010'),k=g('40003');
+    return {at:S.atFirst,soon:c?c.__s.minus.join('|')+' ok='+c.__s.mealOk:'없음',early:e?e.__s.mealOk:'없음',kiro:k?k.__s.mealOk:'없음'}});
+  ok('N1 밤에도 1차 근처에서 2차',n1.at==='40100',n1.at);
+  ok('N2 23시 마감 바: 갈 수 있지만 "곧 마감" 안내',/⏰ 23:00 마감/.test(n1.soon)&&/ok=true/.test(n1.soon),n1.soon);
+  ok('N3 20:30 마감 호프: 못 감',n1.early===false,String(n1.early));
+  ok('N4 자정까지 이자카야: 갈 수 있음',n1.kiro===true,String(n1.kiro));
+  ok('N5 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+ // 21:30 이후 1차 결정은 내일 저녁으로
+ {const {pg,errs,ctx}=await newPage(b,{time:T('21:30')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);
+  await pg.fill('#query','연동갈비');await pg.press('#query','Enter');await settle(pg);
+  await pg.click('#decideBtn');await pg.waitForTimeout(300);
+  const t1=await pg.evaluate(()=>({toast:document.getElementById('toast').textContent,second:document.getElementById('secondBtn').hidden,bar:document.getElementById('firstBar').hidden,lf:window.__jy.loadFirst()}));
+  ok('T1 21:30 결정 → 내일 저녁 1차',/내일 저녁 1차/.test(t1.toast)&&t1.second&&t1.bar&&t1.lf===null,JSON.stringify(t1));
+  ok('T2 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+ // 어제 저녁 1차 기록은 오늘 쓰지 않음
+ {const {pg,errs,ctx}=await newPage(b,{time:T('19:00')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(1500);
+  await pg.evaluate(()=>{const d=new Date();d.setDate(d.getDate()-1);d.setHours(19,0,0,0);localStorage.setItem('jy-dinner-first',JSON.stringify({id:'40100',name:'연동갈비',lat:33.488,lng:126.499,kind:'meat',ts:d.getTime()}));});
+  await pg.reload();await pg.waitForTimeout(2500);await settle(pg);
+  await pg.click('[data-meal="dinner"]');await settle(pg);
+  ok('O1 어제 1차 기록은 무시',await pg.evaluate(()=>document.getElementById('firstBar').hidden&&document.getElementById('secondBtn').hidden));
+  await pg.click('[data-food="bar"]');await settle(pg);
+  ok('O2 2차 칩: 1차 없으면 내 위치 기준 + 안내',await pg.evaluate(()=>window.__jy.state.atFirst===null&&/1차 가게에서/.test(document.getElementById('firstBar').textContent)&&document.getElementById('decideBtn').hidden));
+  ok('O3 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+
  await b.close();
  const f=results.filter(r=>r[0]==='FAIL');for(const r of results) console.log(r[0],r[1],r[2]?'· '+r[2]:'');console.log('\n총',results.length,'항목 / 실패',f.length);
 })();
