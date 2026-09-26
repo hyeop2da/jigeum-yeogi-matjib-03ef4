@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-26-menutier">
+<body data-app-version="2026-09-26-menutier2">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -273,7 +273,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
     for(const t of [last,cat,textOf(p)]){const hit=parts.filter(x=>LABEL_PART[x][0].test(t));if(hit.length===1)return LABEL_PART[hit[0]][1];if(hit.length>1)return label;}
     return label;
   }
-  function catText(p){const a=foodLabelOf(p),b=menuLabel(p);return !b||a.includes(b)||/^(한식|음식점|일식집)$/.test(b)?a:a==='음식점'?b:a+' · '+b}
+  function catText(p){const a=foodLabelOf(p),b=menuLabel(p);return !b||a.includes(b)||/^(한식|음식점|일식집)$/.test(b)||(LABEL_PART[b]&&LABEL_PART[b][1]===a)?a:a==='음식점'?b:a+' · '+b}
 
   // 날씨 반영용 메뉴 성향
   const SOUP=['국밥','해장','국수','칼국수','설렁탕','곰탕','갈비탕','찌개','전골','라멘','라면','우동','쌀국수','짬뽕','수제비','몸국','뚝배기','순대','샤브','탕'];
@@ -308,7 +308,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
   // 카카오 분류의 마지막 칸 (체인점은 마지막 칸이 가게 이름이라 한 칸 앞을 쓴다: '해장국 > 일품양평해장국' → '해장국')
   function menuLabel(p){const parts=String(p.category_name||'').split('>').map(s=>s.trim()).filter(Boolean);
     let last=parts.length?parts[parts.length-1]:'음식점';
-    if(parts.length>2&&String(p.place_name||'').replace(/\s+/g,'').includes(last.replace(/\s+/g,''))) last=parts[parts.length-2];
+    if(parts.length>2&&last.length>=4&&!last.includes(',')&&String(p.place_name||'').replace(/\s+/g,'').includes(last.replace(/\s+/g,''))) last=parts[parts.length-2];
     return last}
   function textOf(p){return String(p.category_name||'')+' '+String(p.place_name||'')}
   function store(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v??fallback}catch(e){return fallback}}
