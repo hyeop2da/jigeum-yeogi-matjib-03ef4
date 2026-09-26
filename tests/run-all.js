@@ -347,6 +347,30 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   ok('O2 2차 칩: 1차 없으면 내 위치 기준 + 안내',await pg.evaluate(()=>window.__jy.state.atFirst===null&&/1차 가게에서/.test(document.getElementById('firstBar').textContent)&&document.getElementById('decideBtn').hidden));
   ok('O3 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
 
+ // ===== 조건 초기화 · 저녁엔 이번 주 점심 숨김 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('12:10')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  ok('R1 초기화 버튼이 날씨 옆에 보임',await pg.evaluate(()=>{const b=document.getElementById('resetBtn');return !!b&&b.parentElement.id==='context'&&b.offsetWidth>0&&getComputedStyle(b).backgroundColor!=='rgba(0, 0, 0, 0)'}));
+  ok('R2 점심엔 이번 주 점심 보임',await pg.evaluate(()=>!document.getElementById('history').hidden&&document.getElementById('history').offsetHeight>0));
+  await pg.click('[data-food="chinese"]');await settle(pg);await pg.click('[data-sit="solo"]');await pg.click('[data-radius="1000"]');await settle(pg);
+  await pg.fill('#query','짬뽕');await pg.press('#query','Enter');await settle(pg);
+  await pg.click('#resetBtn');await settle(pg);
+  const r1=await pg.evaluate(()=>{const S=window.__jy.state;return {q:document.getElementById('query').value,food:S.food,sit:S.situation,radius:S.radius,locked:S.radiusLocked,toast:document.getElementById('toast').textContent,active:document.querySelector('[data-food].active')?.dataset.food,n:S.ranked.length}});
+  ok('R3 초기화 → 검색어·메뉴·상황·거리 기본값',r1.q===''&&r1.food==='all'&&r1.sit==='team'&&r1.radius===670&&!r1.locked&&r1.active==='all'&&r1.n>0,JSON.stringify(r1));
+  ok('R4 초기화 안내',/처음 조건으로/.test(r1.toast),r1.toast);
+  await pg.click('#resetBtn');await pg.waitForTimeout(200);
+  ok('R5 이미 처음이면 알려 줌',await pg.evaluate(()=>/이미 처음 조건/.test(document.getElementById('toast').textContent)));
+  await pg.click('[data-meal="dinner"]');await settle(pg);
+  ok('R6 저녁엔 이번 주 점심 숨김',await pg.evaluate(()=>document.getElementById('history').hidden&&document.getElementById('history').offsetHeight===0));
+  ok('R7 저녁에도 초기화 버튼',await pg.evaluate(()=>!!document.getElementById('resetBtn')));
+  await pg.fill('#query','연동갈비');await pg.press('#query','Enter');await settle(pg);await pg.click('#decideBtn');await pg.waitForTimeout(300);
+  await pg.click('#secondBtn');await settle(pg);await pg.click('[data-barkind="wine"]');await pg.waitForTimeout(200);
+  await pg.click('#resetBtn');await settle(pg);
+  const r2=await pg.evaluate(()=>{const S=window.__jy.state;return {food:S.food,at:S.atFirst,kind:S.barKind,sit:S.situation,radius:S.radius,loc:document.getElementById('locState').textContent,kinds:document.getElementById('barKindChips').hidden,first:!!window.__jy.loadFirst()}});
+  ok('R8 2차(1차 근처)에서 초기화 → 1차 메뉴 전체·원래 위치·도보 10분 (1차 기록은 유지)',r2.food==='all'&&r2.at===null&&r2.kind==='all'&&r2.sit==='company'&&r2.radius===670&&/현재 위치/.test(r2.loc)&&r2.kinds&&r2.first,JSON.stringify(r2));
+  await pg.click('[data-meal="lunch"]');await settle(pg);
+  ok('R9 점심으로 돌아오면 이번 주 점심 다시 보임',await pg.evaluate(()=>!document.getElementById('history').hidden));
+  ok('R10 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+
  await b.close();
  const f=results.filter(r=>r[0]==='FAIL');for(const r of results) console.log(r[0],r[1],r[2]?'· '+r[2]:'');console.log('\n총',results.length,'항목 / 실패',f.length);
 })();

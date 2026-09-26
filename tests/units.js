@@ -275,6 +275,10 @@ const sMeat=BS({place_name:'고기굽는술집',__menu:'삼겹살,목살'}), sBe
 t('2차 짝: 1차 고기 → 고깃집 술집 < 호프',sMeat.score<sBeer.score,sMeat.score.toFixed(1)+' vs '+sBeer.score.toFixed(1));
 t('2차 짝: 겹침 안내',sMeat.minus.some(x=>/1차 메뉴\(고기\)와 겹쳐요/.test(x)),sMeat.minus.join('|'));
 t('2차 짝: 어울림 안내',sBeer.plus.some(x=>/1차가 고기였으니/.test(x)),sBeer.plus.join('|'));
+const sDry=BS({place_name:'요망이',__menu:'먹태구이,감자튀김,물떡오뎅탕'});
+t('2차 짝: "먹태구이"는 고기로 보지 않음',!sDry.minus.some(x=>/겹쳐요/.test(x)),sDry.minus.join('|'));
+const sCock=BS({category_name:'음식점 > 술집 > 칵테일바',place_name:'주제'});
+t('2차 짝: 칵테일바 이유에 "맥주" 없음',sCock.plus.some(x=>/1차가 고기였으니/.test(x))&&!sCock.plus.some(x=>/1차가.*맥주/.test(x)),sCock.plus.join('|'));
 t('2차 늦게까지: 새벽 배지',BS({__hours:{days:[-1,0,1].map(i=>{const d=new Date();d.setDate(d.getDate()+i);return {d:dk(d),h:'18:00~04:00'}})}}).badges.some(b=>/새벽 04:00까지/.test(b[1])));
 Object.assign(st,{situation:'quiet'});
 t('2차 조용히: 칵테일바 > 호프',BS({category_name:'음식점 > 술집 > 칵테일바',place_name:'프리베'}).score>BS({place_name:'연동호프',__menu:'생맥주'}).score);
