@@ -164,6 +164,15 @@ t('저녁 1차 전체: 구내식당 제외',!J.isDinnerMain({category_name:'음�
 t('카페 19:40 → 내일 점심 후 기준',J.mealOpen(H('10:00~19:00'),'lunch',at(19,40),'cafe').tomorrow===true);
 t('카페 19:40 내일 영업이면 OK',J.mealOpen(H('10:00~19:00'),'lunch',at(19,40),'cafe').ok===true);
 t('카페 13:00 → 지금 기준',J.mealOpen(H('10:00~19:00'),'lunch',at(13,0),'cafe').now===true);
+
+t('저녁 전용(17~24시) → 점심에서 뺌',J.neverInSlot(H('17:00~24:00'),J.MEAL_SLOT.lunch)===true);
+t('저녁 전용(16:30~) → 점심에서 뺌',J.neverInSlot(H('16:30~02:00'),J.MEAL_SLOT.lunch)===true);
+t('점심 장사하는 곳은 유지',J.neverInSlot(H('11:00~21:00'),J.MEAL_SLOT.lunch)===false);
+t('오늘만 휴무인 점심집은 유지(다음에 참고)',J.neverInSlot(H('',(i,k)=>i===0?{d:k,off:1}:{d:k,h:'11:00~21:00'}),J.MEAL_SLOT.lunch)===false);
+t('영업시간 모르면 유지',J.neverInSlot(null,J.MEAL_SLOT.lunch)===false);
+t('브레이크로 점심을 통째로 쉬면 뺌',J.neverInSlot({days:H('10:00~22:00').days.map(x=>Object.assign(x,{b:['11:00~17:00']}))},J.MEAL_SLOT.lunch)===true);
+t('13시 오픈(점심 30분만) → 뺌',J.neverInSlot(H('13:00~22:00'),J.MEAL_SLOT.lunch)===true);
+t('저녁 카페(17시 오픈) → 카페 칩에서 뺌',J.neverInSlot(H('17:00~24:00'),J.LATER_SLOT.cafe)===true);
 // 점수
 const keepS={meal:st.meal,situation:st.situation,radius:st.radius,food:st.food};
 const S=(o,x={})=>{const p=Object.assign({id:String(Math.random()),place_name:'가게',category_name:'음식점 > 한식 > 한정식',category_group_code:'FD6',distance:300,__rating:4.4,__ratingCount:300,__reviewCount:10,__hours:null},o);return J.scorePlace(p,'').score;};

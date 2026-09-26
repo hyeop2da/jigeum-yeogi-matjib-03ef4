@@ -49,7 +49,7 @@
     @media(max-width:820px){.layout{grid-template-columns:1fr}.list{max-height:none}#map{height:300px}.listwrap{order:2}.mapwrap{order:1}.pick-name{font-size:23px}.week{gap:4px}.day{padding:5px 4px}}
   </style>
 </head>
-<body data-app-version="2026-09-25-live2">
+<body data-app-version="2026-09-26-nodinneronly">
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">🍜</div><h1>지금 여기 맛집</h1><div class="meal" role="tablist" aria-label="식사 시간"><button role="tab" data-meal="lunch">☀️ 점심</button><button role="tab" data-meal="dinner">🌙 저녁</button></div></div>
@@ -460,12 +460,24 @@ const MIN_RATING=3.7; const RATE_CAP=80;
       const first=idx.indexOf(dayKey(addDays(date,-1))), last=idx.indexOf(dayKey(addDays(date,1)));
       return first>=0&&last>=0?[]:null;
     }
+    return entrySegs(e);
+  }
+  // 영업시간 목록의 한 날(항목) → 영업 구간(분). 휴무면 [], 모르면 null
+  function entrySegs(e){
     if(e.off) return [];
     const [o,c]=String(e.h).split('~').map(hm); if(!Number.isFinite(o)||!Number.isFinite(c)) return null;
     let segs=[[o,c<=o?c+1440:c]];
     (e.b||[]).forEach(b=>{const [bs,be]=String(b).split('~').map(hm);if(!Number.isFinite(bs))return;
       segs=segs.flatMap(([a,z])=>{const s1=bs<a?bs+1440:bs,e1=be<s1?be+1440:be;if(s1>=z||e1<=a)return [[a,z]];return [[a,s1],[e1,z]].filter(([x,y])=>y>x);});});
     return segs;
+  }
+  // 일주일 내내 그 식사 시간에는 문을 열지 않는 가게인지 (예: 17시에 여는 이자카야·횟집 → 점심 추천에서 뺀다)
+  // 오늘만 쉬는 곳은 해당 없음 (다른 날 점심 장사를 하면 '다음에 참고'로 남긴다)
+  function neverInSlot(hours,slot){
+    if(!hours||!Array.isArray(hours.days)) return false;
+    const open=hours.days.map(entrySegs).filter(sg=>sg&&sg.length);
+    if(!open.length) return false;
+    return open.every(sg=>sg.reduce((t,[a,z])=>t+Math.max(0,Math.min(z,slot.to)-Math.max(a,slot.from)),0)<slot.need);
   }
   function hoursEntry(hours,date){return hours&&Array.isArray(hours.days)?hours.days.find(x=>x.d===dayKey(date)):null}
   function openStatus(hours,now){
@@ -1135,6 +1147,8 @@ const MIN_RATING=3.7; const RATE_CAP=80;
         p.__menu=r&&r.menu?r.menu:'';
           // 평점 서버가 멈추면 평점 없이도 추천한다
           if(p.__named) return true; // 이름을 직접 찾은 가게는 평점과 상관없이 보여 준다
+          // 점심 추천: 점심시간에 한 번도 열지 않는 저녁 전용 가게는 뺀다 (카페는 점심 후 커피 시간 기준)
+          if(state.meal==='lunch'&&neverInSlot(p.__hours,state.food==='cafe'?LATER_SLOT.cafe:MEAL_SLOT.lunch)) return false;
           if(down) return p.__rating==null||p.__rating>=MIN_RATING;
           // 평점이 아예 없는 곳(새로 생겼거나 평가 전)은 빼지 않고 아래쪽에 둔다. 평점이 낮은 곳만 뺀다
           if(p.__rating==null) return true;
@@ -1437,7 +1451,7 @@ const MIN_RATING=3.7; const RATE_CAP=80;
   document.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>{if(b.dataset.meal===state.meal)return;setMeal(b.dataset.meal);$('query').value='';state.autoExpanded=false;search();});
   $('appVer').textContent='버전 '+(document.body.dataset.appVersion||'');
   // 자동 테스트 전용(주소에 ?debug=1 일 때만): 안쪽 판단 함수를 밖에서 확인할 수 있게
-  if(/[?&]debug=1(&|$)/.test(location.search)) window.__jy={state,isBroadCat,FOODS_LUNCH,FOODS_DINNER,isMeatGrill,isSoupPlace,isChicken,isCafe,isBar,isEatery,isFranchise,isDinnerMain,foodLabelOf,catText,kwIn,isNamed,normName,drinkOf,linkName,kakaoWebUrl,kakaoAppPath,mealOpen,openStatus,hoursOn,scorePlace,villageOf,setMeal,DISTINCT_CAT,EXTRA_Q,walkMin,fmtDistance,mealIsTomorrow,guestReason};
+  if(/[?&]debug=1(&|$)/.test(location.search)) window.__jy={neverInSlot,MEAL_SLOT,LATER_SLOT,state,isBroadCat,FOODS_LUNCH,FOODS_DINNER,isMeatGrill,isSoupPlace,isChicken,isCafe,isBar,isEatery,isFranchise,isDinnerMain,foodLabelOf,catText,kwIn,isNamed,normName,drinkOf,linkName,kakaoWebUrl,kakaoAppPath,mealOpen,openStatus,hoursOn,scorePlace,villageOf,setMeal,DISTINCT_CAT,EXTRA_Q,walkMin,fmtDistance,mealIsTomorrow,guestReason};
   setMeal('lunch');
   renderContext();
   renderKakaoPref();

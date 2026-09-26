@@ -218,6 +218,15 @@ const T=h=>'2026-09-25T'+h+':00+09:00';
   await pg.click('[data-food="western"]');await settle(pg);
   ok('L3 점심 양식 칩에 술집 없음',await pg.evaluate(()=>window.__jy.state.ranked.every(p=>!/술집/.test(p.category_name))));
   ok('L4 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
+
+ // ===== 점심에 저녁 전용 가게 제외 =====
+ {const {pg,errs,ctx}=await newPage(b,{time:T('12:10')});await pg.goto('http://localhost:9999/?debug=1');await pg.waitForTimeout(2500);await settle(pg);
+  const r=await pg.evaluate(()=>{const J=window.__jy;return J.state.ranked.filter(p=>J.neverInSlot(p.__hours,J.MEAL_SLOT.lunch)).map(p=>p.place_name)});
+  ok('D1 점심 추천에 저녁 전용 가게 없음',r.length===0,r.join(','));
+  await pg.click('[data-meal="dinner"]');await settle(pg);await pg.click('[data-radius="2000"]');await settle(pg);
+  const d=await pg.evaluate(()=>{const J=window.__jy;return J.state.ranked.filter(p=>J.neverInSlot(p.__hours,J.MEAL_SLOT.lunch)).length});
+  ok('D2 저녁엔 저녁 전용 가게 나옴',d>0,d+'곳');
+  ok('D3 오류 없음',errs.length===0,errs.join('|'));await ctx.close();}
  await b.close();
  const f=results.filter(r=>r[0]==='FAIL');for(const r of results) console.log(r[0],r[1],r[2]?'· '+r[2]:'');console.log('\n총',results.length,'항목 / 실패',f.length);
 })();
